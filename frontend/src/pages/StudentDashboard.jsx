@@ -28,15 +28,14 @@ export default function StudentDashboard() {
 
   const fetchData = async () => {
     try {
-      const [ticketsRes, routesRes] = await Promise.all([
-        axios.get(`https://campusgo-production-3b90.up.railway.app/api/tickets/${user.id}`),
-        axios.get('https://campusgo-production-3b90.up.railway.app/api/routes')
-      ]);
-      setTickets(ticketsRes.data);
+      const routesRes = await axios.get('https://campusgo-production-3b90.up.railway.app/api/routes');
       setRoutes(routesRes.data);
-    } catch (err) {
-      console.error(err);
-    }
+    } catch (err) { console.error('Routes error:', err); }
+
+    try {
+      const ticketsRes = await axios.get(`https://campusgo-production-3b90.up.railway.app/api/tickets/${user.id}`);
+      setTickets(ticketsRes.data);
+    } catch (err) { console.error('Tickets error:', err); }
   };
 
   useEffect(() => { fetchData(); }, []);
