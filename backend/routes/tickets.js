@@ -46,7 +46,7 @@ router.post('/buy', async (req, res) => {
 
     // Create ticket
     const ticket = await pool.query(
-      'INSERT INTO tickets (student_id, route_id, bus_id, qr_code, fare, ticket_code) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *',
+      'INSERT INTO tickets (user_id, route_id, bus_id, qr_code, fare, ticket_code) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *',
       [student_id, route_id, bus_id, qrCode, fare, ticket_code]
     );
 
@@ -63,7 +63,7 @@ router.get('/:student_id', async (req, res) => {
       `SELECT tickets.*, routes.name as route_name, routes.origin, routes.destination 
        FROM tickets 
        LEFT JOIN routes ON tickets.route_id = routes.id 
-       WHERE tickets.student_id = $1
+       WHERE tickets.user_id = $1
        ORDER BY tickets.created_at DESC`,
       [req.params.student_id]
     );
