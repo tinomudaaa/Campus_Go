@@ -203,4 +203,41 @@ router.patch('/trips/:id/status', requireOperatorAdmin, async (req, res) => {
   }
 });
 
+// GET routes
+router.get('/routes', requireOperatorAdmin, async (req, res) => {
+  try {
+    const result = await pool.query(
+      'SELECT * FROM routes WHERE company_id = $1 ORDER BY created_at DESC',
+      [req.companyId]
+    );
+    res.json(result.rows);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// POST add route
+router.post('/routes', requireOperatorAdmin, async (req, res) => {
+  try {
+    const { name, origin, destination, fare } = req.body;
+    const result = await pool.query(
+      'INSERT INTO routes (company_id, name, origin, destination, fare) VALUES ($1, $2, $3, $4, $5) RETURNING *',
+      [req.companyId, name, origin, destination, fare]
+    );
+    res.json(result.rows[0]);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// DELETE route
+router.delete('/routes/:id', requireOperatorAdmin, async (req, res) => {
+  try {
+    await pool.query('DELETE FROM routes WHERE id = $1 AND company_id = $2', [req.params.id, req.companyId]);
+    res.json({ message: 'Route deleted' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 module.exports = router;
