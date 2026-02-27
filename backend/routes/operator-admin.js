@@ -64,9 +64,10 @@ router.post('/invite-staff', requireOperatorAdmin, async (req, res) => {
       [email, token, req.companyId, req.adminId, 'operator_staff']
     );
 
+    const invite_url = `${process.env.FRONTEND_URL}/invite/${token}`;
     res.json({
-      message: 'Invite created',
-      
+        message: 'Invite created',
+        invite_url,
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
