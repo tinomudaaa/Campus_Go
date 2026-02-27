@@ -48,17 +48,17 @@ export default function OperatorAdminDashboard() {
     try {
       const [busRes, routeRes, staffRes, activeRes] = await Promise.all([
         axios.get(`https://campusgo-production-3b90.up.railway.app/api/buses/company/${user?.company_id}`),
-        axios.get(`https://campusgo-production-3b90.up.railway.app/api/routes`),
+        axios.get(`https://campusgo-production-3b90.up.railway.app/api/operator-admin/routes`, { headers }),
         axios.get(`https://campusgo-production-3b90.up.railway.app/api/operator-admin/staff`, { headers }),
         axios.get('https://campusgo-production-3b90.up.railway.app/api/locations/active'),
       ]);
       setBuses(busRes.data);
-      setRoutes(routeRes.data.filter(r => r.company_id === user?.company_id));
+      setRoutes(routeRes.data);
       setStaff(staffRes.data);
       setActiveBuses(activeRes.data);
       setStats({
         buses: busRes.data.length,
-        routes: routeRes.data.filter(r => r.company_id === user?.company_id).length,
+        routes: routeRes.data.length,
         staff: staffRes.data.filter(s => s.status === 'active').length,
         activeTrips: activeRes.data.length,
       });
