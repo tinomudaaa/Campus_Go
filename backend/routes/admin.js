@@ -64,7 +64,7 @@ router.post('/companies', requirePlatformAdmin, async (req, res) => {
     res.json({
       company,
       inviteToken: token,
-      invite_url: `http://localhost:5173/invite/${token}`,
+      invite_url: `${process.env.FRONTEND_URL}/invite/${token}`,
       message: 'Company created and invite generated'
     });
   } catch (err) {
