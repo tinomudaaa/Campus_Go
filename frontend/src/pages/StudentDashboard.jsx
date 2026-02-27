@@ -7,6 +7,12 @@ import {
   Alert, Snackbar, TextField
 } from '@mui/material';
 import ShoppingCartIcon from '@mui/icons-material/ShoppingCart';
+import DirectionsBusIcon from '@mui/icons-material/DirectionsBus';
+import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
+import ConfirmationNumberIcon from '@mui/icons-material/ConfirmationNumber';
+import LogoutIcon from '@mui/icons-material/Logout';
+import SettingsIcon from '@mui/icons-material/Settings';
+import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
 import BusMap from './BusMap';
 
 const mobileStyles = `
@@ -42,7 +48,6 @@ const mobileStyles = `
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 20px;
   }
 
   .cgo-logo-text {
@@ -213,12 +218,18 @@ export default function StudentDashboard() {
       <div className="cgo-header">
         <div className="cgo-header-top">
           <div className="cgo-logo">
-            <div className="cgo-logo-icon">🚌</div>
+            <div className="cgo-logo-icon">
+              <DirectionsBusIcon sx={{ color: 'white', fontSize: 22 }} />
+            </div>
             <div className="cgo-logo-text">Campus<span>GO</span></div>
           </div>
           <div className="cgo-header-actions">
-            <button className="cgo-icon-btn" onClick={() => window.location.href = '/settings'} title="Settings">⚙️</button>
-            <button className="cgo-icon-btn" onClick={handleLogout} title="Logout">🚪</button>
+            <button className="cgo-icon-btn" onClick={() => window.location.href = '/settings'} title="Settings">
+              <SettingsIcon sx={{ fontSize: 20 }} />
+            </button>
+            <button className="cgo-icon-btn" onClick={handleLogout} title="Logout">
+              <LogoutIcon sx={{ fontSize: 20 }} />
+            </button>
           </div>
         </div>
         <div className="cgo-header-welcome">
@@ -227,7 +238,9 @@ export default function StudentDashboard() {
             <div className="cgo-welcome-name">{user?.full_name}</div>
           </div>
           <div className="cgo-balance-pill">
-            <div className="cgo-balance-label">Wallet</div>
+            <div className="cgo-balance-label" style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+              <AccountBalanceWalletIcon sx={{ fontSize: 11, color: 'rgba(255,255,255,0.6)' }} /> Wallet
+            </div>
             <div className="cgo-balance-amount">${parseFloat(user?.balance || 0).toFixed(2)}</div>
           </div>
         </div>
@@ -236,17 +249,17 @@ export default function StudentDashboard() {
       {/* ── STATS ROW ── */}
       <div className="cgo-stats">
         <div className="cgo-stat-card">
-          <div className="cgo-stat-icon">💳</div>
+          <div className="cgo-stat-icon"><ConfirmationNumberIcon sx={{ color: '#2DBE60', fontSize: 26 }} /></div>
           <div className="cgo-stat-value">{tickets.length}</div>
           <div className="cgo-stat-label">Tickets</div>
         </div>
         <div className="cgo-stat-card">
-          <div className="cgo-stat-icon">🚌</div>
+          <div className="cgo-stat-icon"><DirectionsBusIcon sx={{ color: '#2DBE60', fontSize: 26 }} /></div>
           <div className="cgo-stat-value">{routes.length}</div>
           <div className="cgo-stat-label">Routes</div>
         </div>
         <div className="cgo-stat-card">
-          <div className="cgo-stat-icon">✅</div>
+          <div className="cgo-stat-icon"><CheckCircleOutlineIcon sx={{ color: '#2DBE60', fontSize: 26 }} /></div>
           <div className="cgo-stat-value">{tickets.filter(t => t.status === 'active').length}</div>
           <div className="cgo-stat-label">Active</div>
         </div>
