@@ -18,6 +18,7 @@ const generateTicketCode = () => {
 router.post('/buy', async (req, res) => {
   try {
     const { student_id, route_id, bus_id } = req.body;
+    const user_id = student_id;
 
     // Get fare
     const routeResult = await pool.query('SELECT fare FROM routes WHERE id = $1', [route_id]);
