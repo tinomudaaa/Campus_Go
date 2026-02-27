@@ -1,18 +1,143 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 import {
-  Box, Typography, Card, CardContent, AppBar, Toolbar, Button,
+  Box, Typography, Card, CardContent, Button,
   Chip, Table, TableBody, TableCell, TableContainer, TableHead,
   TableRow, Paper, Dialog, DialogTitle, DialogContent, DialogActions,
   Alert, Snackbar, TextField
 } from '@mui/material';
-import DirectionsBusIcon from '@mui/icons-material/DirectionsBus';
-import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
-import ConfirmationNumberIcon from '@mui/icons-material/ConfirmationNumber';
-import LogoutIcon from '@mui/icons-material/Logout';
 import ShoppingCartIcon from '@mui/icons-material/ShoppingCart';
-import SettingsIcon from '@mui/icons-material/Settings';
 import BusMap from './BusMap';
+
+const mobileStyles = `
+  @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap');
+  * { font-family: 'DM Sans', sans-serif; }
+
+  .cgo-header {
+    background: linear-gradient(135deg, #1a1a1a 0%, #1F1F1F 60%, #2a2a2a 100%);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.3);
+  }
+
+  .cgo-header-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 16px 8px;
+  }
+
+  .cgo-logo {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .cgo-logo-icon {
+    background: #2DBE60;
+    border-radius: 10px;
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+  }
+
+  .cgo-logo-text {
+    font-size: 20px;
+    font-weight: 700;
+    color: white;
+    letter-spacing: -0.3px;
+  }
+
+  .cgo-logo-text span { color: #2DBE60; }
+
+  .cgo-header-actions {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+
+  .cgo-icon-btn {
+    background: rgba(255,255,255,0.1);
+    border: none;
+    border-radius: 10px;
+    width: 38px;
+    height: 38px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: white;
+    font-size: 17px;
+    transition: background 0.2s;
+  }
+
+  .cgo-icon-btn:active { background: rgba(255,255,255,0.25); }
+
+  .cgo-header-welcome {
+    padding: 4px 16px 14px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .cgo-welcome-text {
+    color: rgba(255,255,255,0.6);
+    font-size: 12px;
+  }
+
+  .cgo-welcome-name {
+    color: white;
+    font-size: 16px;
+    font-weight: 600;
+    margin-top: 1px;
+  }
+
+  .cgo-balance-pill {
+    background: rgba(45,190,96,0.2);
+    border: 1px solid rgba(45,190,96,0.4);
+    border-radius: 14px;
+    padding: 6px 14px;
+    text-align: right;
+  }
+
+  .cgo-balance-label {
+    color: rgba(255,255,255,0.6);
+    font-size: 10px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .cgo-balance-amount {
+    color: #2DBE60;
+    font-size: 18px;
+    font-weight: 700;
+    line-height: 1.2;
+  }
+
+  .cgo-stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    padding: 16px 16px 4px;
+  }
+
+  .cgo-stat-card {
+    background: white;
+    border-radius: 14px;
+    padding: 12px 8px;
+    text-align: center;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  }
+
+  .cgo-stat-icon { font-size: 22px; margin-bottom: 4px; line-height: 1; }
+  .cgo-stat-value { font-size: 22px; font-weight: 700; color: #2DBE60; line-height: 1.1; }
+  .cgo-stat-label { font-size: 10px; color: #999; font-weight: 500; margin-top: 2px; text-transform: uppercase; letter-spacing: 0.3px; }
+`;
 
 export default function StudentDashboard() {
   const [tickets, setTickets] = useState([]);
@@ -81,85 +206,87 @@ export default function StudentDashboard() {
   };
 
   return (
-    <Box sx={{ minHeight: '100vh', background: '#f9f9f9' }}>
-      <AppBar position="static" sx={{ background: '#1F1F1F' }}>
-        <Toolbar>
-          <DirectionsBusIcon sx={{ mr: 1, color: '#2DBE60' }} />
-          <Typography variant="h6" fontWeight="bold" sx={{ flexGrow: 1 }}>Campus GO</Typography>
-          <Typography variant="body2" sx={{ mr: 2 }}>Welcome, {user?.full_name}</Typography>
-          <Button color="inherit" startIcon={<SettingsIcon />} onClick={() => window.location.href = '/settings'} sx={{ mr: 1 }}>Settings</Button>
-          <Button color="inherit" startIcon={<LogoutIcon />} onClick={handleLogout}>Logout</Button>
-        </Toolbar>
-      </AppBar>
+    <Box sx={{ minHeight: '100vh', background: '#f5f7f5' }}>
+      <style>{mobileStyles}</style>
 
-      <Box sx={{ p: 4 }}>
+      {/* ── NEW MOBILE HEADER ── */}
+      <div className="cgo-header">
+        <div className="cgo-header-top">
+          <div className="cgo-logo">
+            <div className="cgo-logo-icon">🚌</div>
+            <div className="cgo-logo-text">Campus<span>GO</span></div>
+          </div>
+          <div className="cgo-header-actions">
+            <button className="cgo-icon-btn" onClick={() => window.location.href = '/settings'} title="Settings">⚙️</button>
+            <button className="cgo-icon-btn" onClick={handleLogout} title="Logout">🚪</button>
+          </div>
+        </div>
+        <div className="cgo-header-welcome">
+          <div>
+            <div className="cgo-welcome-text">Welcome back,</div>
+            <div className="cgo-welcome-name">{user?.full_name}</div>
+          </div>
+          <div className="cgo-balance-pill">
+            <div className="cgo-balance-label">Wallet</div>
+            <div className="cgo-balance-amount">${parseFloat(user?.balance || 0).toFixed(2)}</div>
+          </div>
+        </div>
+      </div>
 
-        {/* Stats */}
-        <Box sx={{ display: 'flex', gap: 3, mb: 4 }}>
-          <Card sx={{ flex: 1, borderRadius: 3, borderLeft: '4px solid #2DBE60' }}>
-            <CardContent>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-                <AccountBalanceWalletIcon sx={{ color: '#2DBE60' }} />
-                <Typography color="text.secondary" variant="body2">Wallet Balance</Typography>
-              </Box>
-              <Typography variant="h4" fontWeight="bold" color="#2DBE60">
-                ${parseFloat(user?.balance || 0).toFixed(2)}
-              </Typography>
-            </CardContent>
-          </Card>
-          <Card sx={{ flex: 1, borderRadius: 3, borderLeft: '4px solid #2DBE60' }}>
-            <CardContent>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-                <ConfirmationNumberIcon sx={{ color: '#2DBE60' }} />
-                <Typography color="text.secondary" variant="body2">Total Tickets</Typography>
-              </Box>
-              <Typography variant="h4" fontWeight="bold" color="#1F1F1F">{tickets.length}</Typography>
-            </CardContent>
-          </Card>
-          <Card sx={{ flex: 1, borderRadius: 3, borderLeft: '4px solid #2DBE60' }}>
-            <CardContent>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-                <DirectionsBusIcon sx={{ color: '#2DBE60' }} />
-                <Typography color="text.secondary" variant="body2">Available Routes</Typography>
-              </Box>
-              <Typography variant="h4" fontWeight="bold" color="#1F1F1F">{routes.length}</Typography>
-            </CardContent>
-          </Card>
-        </Box>
-        
+      {/* ── STATS ROW ── */}
+      <div className="cgo-stats">
+        <div className="cgo-stat-card">
+          <div className="cgo-stat-icon">💳</div>
+          <div className="cgo-stat-value">{tickets.length}</div>
+          <div className="cgo-stat-label">Tickets</div>
+        </div>
+        <div className="cgo-stat-card">
+          <div className="cgo-stat-icon">🚌</div>
+          <div className="cgo-stat-value">{routes.length}</div>
+          <div className="cgo-stat-label">Routes</div>
+        </div>
+        <div className="cgo-stat-card">
+          <div className="cgo-stat-icon">✅</div>
+          <div className="cgo-stat-value">{tickets.filter(t => t.status === 'active').length}</div>
+          <div className="cgo-stat-label">Active</div>
+        </div>
+      </div>
+
+      <Box sx={{ p: 2 }}>
+
         {/* Live Bus Tracking */}
-        <Box sx={{ mb: 4 }}>
+        <Box sx={{ mb: 3 }}>
           <BusMap />
         </Box>
 
-        {/* Available Routes with Buy Button */}
-        <Card sx={{ borderRadius: 3, mb: 4 }}>
+        {/* Available Routes */}
+        <Card sx={{ borderRadius: 3, mb: 3 }}>
           <CardContent>
             <Typography variant="h6" fontWeight="bold" sx={{ mb: 2 }}>🚌 Available Routes</Typography>
             {routes.length === 0 ? (
-              <Typography color="text.secondary" sx={{ textAlign: 'center', py: 3 }}>
-                No routes available yet
-              </Typography>
+              <Typography color="text.secondary" sx={{ textAlign: 'center', py: 3 }}>No routes available yet</Typography>
             ) : (
-              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2 }}>
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
                 {routes.map(route => (
-                  <Card key={route.id} sx={{ minWidth: 220, borderRadius: 2, border: '1px solid #e0e0e0', '&:hover': { boxShadow: 3 } }}>
-                    <CardContent sx={{ pb: '16px !important' }}>
-                      <Typography fontWeight="bold" color="#1F1F1F">{route.name}</Typography>
-                      <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                        {route.origin} → {route.destination}
-                      </Typography>
-                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <Chip label={`$${parseFloat(route.fare).toFixed(2)}`} size="small"
-                          sx={{ background: '#2DBE60', color: '#fff', fontWeight: 'bold' }} />
-                        <Button size="small" variant="contained" startIcon={<ShoppingCartIcon />}
-                          sx={{ background: '#1F1F1F', color: '#fff', '&:hover': { background: '#2DBE60' } }}
-                          onClick={() => { setSelectedRoute(route); setBuyDialogOpen(true); }}>
-                          Buy
-                        </Button>
-                      </Box>
-                    </CardContent>
-                  </Card>
+                  <Box key={route.id} sx={{
+                    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                    p: 1.5, border: '1px solid #e0e0e0', borderRadius: 2,
+                    '&:hover': { boxShadow: 2 }
+                  }}>
+                    <Box>
+                      <Typography fontWeight="bold" fontSize={15}>{route.name}</Typography>
+                      <Typography variant="body2" color="text.secondary">{route.origin} → {route.destination}</Typography>
+                    </Box>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <Chip label={`$${parseFloat(route.fare).toFixed(2)}`} size="small"
+                        sx={{ background: '#2DBE60', color: '#fff', fontWeight: 'bold' }} />
+                      <Button size="small" variant="contained" startIcon={<ShoppingCartIcon />}
+                        sx={{ background: '#1F1F1F', color: '#fff', '&:hover': { background: '#2DBE60' } }}
+                        onClick={() => { setSelectedRoute(route); setBuyDialogOpen(true); }}>
+                        Buy
+                      </Button>
+                    </Box>
+                  </Box>
                 ))}
               </Box>
             )}
@@ -167,11 +294,11 @@ export default function StudentDashboard() {
         </Card>
 
         {/* Ticket History */}
-        <Card sx={{ borderRadius: 3, mb: 4 }}>
+        <Card sx={{ borderRadius: 3, mb: 3 }}>
           <CardContent>
             <Typography variant="h6" fontWeight="bold" sx={{ mb: 2 }}>🎫 My Tickets</Typography>
             <TableContainer component={Paper} elevation={0}>
-              <Table>
+              <Table size="small">
                 <TableHead>
                   <TableRow sx={{ background: '#f9f9f9' }}>
                     <TableCell><strong>Route</strong></TableCell>
@@ -179,7 +306,7 @@ export default function StudentDashboard() {
                     <TableCell><strong>Fare</strong></TableCell>
                     <TableCell><strong>Status</strong></TableCell>
                     <TableCell><strong>Date</strong></TableCell>
-                    <TableCell><strong>QR Code</strong></TableCell>
+                    <TableCell><strong>QR</strong></TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
@@ -220,12 +347,10 @@ export default function StudentDashboard() {
           </CardContent>
         </Card>
 
-        {/* Trip History & Spending Analytics */}
-        <Card sx={{ borderRadius: 3, mb: 4 }}>
+        {/* Spending Analytics */}
+        <Card sx={{ borderRadius: 3, mb: 3 }}>
           <CardContent>
             <Typography variant="h6" fontWeight="bold" sx={{ mb: 3 }}>📊 My Spending Analytics</Typography>
-
-            {/* Summary Stats */}
             <Box sx={{ display: 'flex', gap: 2, mb: 4, flexWrap: 'wrap' }}>
               <Card sx={{ flex: 1, minWidth: 140, borderRadius: 2, background: '#f9f9f9', border: '1px solid #e0e0e0' }}>
                 <CardContent>
@@ -238,17 +363,13 @@ export default function StudentDashboard() {
               <Card sx={{ flex: 1, minWidth: 140, borderRadius: 2, background: '#f9f9f9', border: '1px solid #e0e0e0' }}>
                 <CardContent>
                   <Typography variant="body2" color="text.secondary">Active Tickets</Typography>
-                  <Typography variant="h5" fontWeight="bold" color="#1F1F1F">
-                    {tickets.filter(t => t.status === 'active').length}
-                  </Typography>
+                  <Typography variant="h5" fontWeight="bold">{tickets.filter(t => t.status === 'active').length}</Typography>
                 </CardContent>
               </Card>
               <Card sx={{ flex: 1, minWidth: 140, borderRadius: 2, background: '#f9f9f9', border: '1px solid #e0e0e0' }}>
                 <CardContent>
                   <Typography variant="body2" color="text.secondary">Used Tickets</Typography>
-                  <Typography variant="h5" fontWeight="bold" color="#1F1F1F">
-                    {tickets.filter(t => t.status === 'used').length}
-                  </Typography>
+                  <Typography variant="h5" fontWeight="bold">{tickets.filter(t => t.status === 'used').length}</Typography>
                 </CardContent>
               </Card>
               <Card sx={{ flex: 1, minWidth: 140, borderRadius: 2, background: '#f9f9f9', border: '1px solid #e0e0e0' }}>
@@ -257,29 +378,24 @@ export default function StudentDashboard() {
                   <Typography variant="h6" fontWeight="bold" color="#2DBE60" noWrap>
                     {tickets.length > 0
                       ? Object.entries(tickets.reduce((acc, t) => {
-                          acc[t.route_name] = (acc[t.route_name] || 0) + 1;
-                          return acc;
+                          acc[t.route_name] = (acc[t.route_name] || 0) + 1; return acc;
                         }, {})).sort((a, b) => b[1] - a[1])[0]?.[0] || '—'
                       : '—'}
                   </Typography>
                 </CardContent>
               </Card>
             </Box>
-
-            {/* Spending by Route */}
             <Typography variant="subtitle1" fontWeight="bold" sx={{ mb: 2 }}>💰 Spending by Route</Typography>
             {tickets.length === 0 ? (
               <Typography color="text.secondary" sx={{ textAlign: 'center', py: 2 }}>No trip history yet</Typography>
             ) : (
               <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
-                {Object.entries(
-                  tickets.reduce((acc, t) => {
-                    if (!acc[t.route_name]) acc[t.route_name] = { count: 0, total: 0 };
-                    acc[t.route_name].count += 1;
-                    acc[t.route_name].total += parseFloat(t.fare || 0);
-                    return acc;
-                  }, {})
-                ).map(([routeName, data]) => {
+                {Object.entries(tickets.reduce((acc, t) => {
+                  if (!acc[t.route_name]) acc[t.route_name] = { count: 0, total: 0 };
+                  acc[t.route_name].count += 1;
+                  acc[t.route_name].total += parseFloat(t.fare || 0);
+                  return acc;
+                }, {})).map(([routeName, data]) => {
                   const totalSpent = tickets.reduce((sum, t) => sum + parseFloat(t.fare || 0), 0);
                   const percentage = totalSpent > 0 ? (data.total / totalSpent) * 100 : 0;
                   return (
@@ -291,10 +407,7 @@ export default function StudentDashboard() {
                         </Typography>
                       </Box>
                       <Box sx={{ background: '#e0e0e0', borderRadius: 4, height: 8 }}>
-                        <Box sx={{
-                          background: '#2DBE60', borderRadius: 4, height: 8,
-                          width: `${percentage}%`, transition: 'width 0.5s ease'
-                        }} />
+                        <Box sx={{ background: '#2DBE60', borderRadius: 4, height: 8, width: `${percentage}%`, transition: 'width 0.5s ease' }} />
                       </Box>
                     </Box>
                   );
@@ -304,31 +417,21 @@ export default function StudentDashboard() {
           </CardContent>
         </Card>
 
-        {/* Feedback Section */}
+        {/* Feedback */}
         <Card sx={{ borderRadius: 3 }}>
           <CardContent>
             <Typography variant="h6" fontWeight="bold" sx={{ mb: 2 }}>💬 Submit Feedback</Typography>
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
               <Box>
-                <Typography variant="caption" color="text.secondary" sx={{ mb: 0.5, display: 'block' }}>
-                  Select Route
-                </Typography>
-                <select
-                  value={feedbackRoute}
-                  onChange={e => setFeedbackRoute(e.target.value)}
-                  style={{
-                    width: '100%', padding: '14px 12px', fontSize: '15px',
-                    border: '1px solid #ccc', borderRadius: '8px',
-                    background: '#fff', color: '#1F1F1F', cursor: 'pointer'
-                  }}>
+                <Typography variant="caption" color="text.secondary" sx={{ mb: 0.5, display: 'block' }}>Select Route</Typography>
+                <select value={feedbackRoute} onChange={e => setFeedbackRoute(e.target.value)}
+                  style={{ width: '100%', padding: '14px 12px', fontSize: '15px', border: '1px solid #ccc', borderRadius: '8px', background: '#fff', color: '#1F1F1F', cursor: 'pointer' }}>
                   <option value="">-- Select a route --</option>
                   {routes.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
                 </select>
               </Box>
-              <TextField fullWidth multiline rows={3} label="Your feedback"
-                value={feedbackMessage} onChange={e => setFeedbackMessage(e.target.value)} />
-              <Button variant="contained" onClick={handleFeedback}
-                disabled={!feedbackRoute || !feedbackMessage}
+              <TextField fullWidth multiline rows={3} label="Your feedback" value={feedbackMessage} onChange={e => setFeedbackMessage(e.target.value)} />
+              <Button variant="contained" onClick={handleFeedback} disabled={!feedbackRoute || !feedbackMessage}
                 sx={{ alignSelf: 'flex-end', px: 4, background: '#2DBE60', '&:hover': { background: '#1F1F1F' } }}>
                 Submit Feedback
               </Button>
@@ -338,7 +441,7 @@ export default function StudentDashboard() {
 
       </Box>
 
-      {/* Buy Ticket Dialog */}
+      {/* Buy Dialog */}
       <Dialog open={buyDialogOpen} onClose={() => setBuyDialogOpen(false)} maxWidth="xs" fullWidth>
         <DialogTitle fontWeight="bold">Confirm Purchase</DialogTitle>
         <DialogContent>
@@ -362,42 +465,28 @@ export default function StudentDashboard() {
         </DialogActions>
       </Dialog>
 
-      {/* QR Code Dialog */}
+      {/* QR Dialog */}
       <Dialog open={qrDialogOpen} onClose={() => setQrDialogOpen(false)} maxWidth="xs" fullWidth>
         <DialogTitle fontWeight="bold" sx={{ textAlign: 'center' }}>🎫 Your Ticket</DialogTitle>
         <DialogContent sx={{ textAlign: 'center' }}>
           <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
             {activeTicket?.route_name} — {activeTicket?.origin} → {activeTicket?.destination}
           </Typography>
-
           {activeTicket?.qr_code && (
             <img src={activeTicket.qr_code} alt="QR Code" style={{ width: 220, height: 220, borderRadius: 8 }} />
           )}
-
-          {/* Ticket Code */}
           {activeTicket?.ticket_code && (
             <Box sx={{ mt: 2.5 }}>
               <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 0.5, letterSpacing: 1, textTransform: 'uppercase' }}>
                 Ticket Code
               </Typography>
-              <Box sx={{
-                display: 'inline-block',
-                px: 3, py: 1.5,
-                background: '#f5f5f5',
-                border: '2px dashed #2DBE60',
-                borderRadius: 2,
-              }}>
-                <Typography
-                  variant="h5"
-                  fontWeight="bold"
-                  sx={{ letterSpacing: 3, color: '#1F1F1F', fontFamily: 'monospace' }}
-                >
+              <Box sx={{ display: 'inline-block', px: 3, py: 1.5, background: '#f5f5f5', border: '2px dashed #2DBE60', borderRadius: 2 }}>
+                <Typography variant="h5" fontWeight="bold" sx={{ letterSpacing: 3, color: '#1F1F1F', fontFamily: 'monospace' }}>
                   {activeTicket.ticket_code}
                 </Typography>
               </Box>
             </Box>
           )}
-
           <Typography variant="caption" color="text.secondary" display="block" sx={{ mt: 2 }}>
             Show this QR code to the operator when boarding
           </Typography>
