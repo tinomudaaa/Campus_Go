@@ -1,24 +1,126 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import {
   Box, Typography, Card, CardContent, AppBar, Toolbar, Button,
   Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
-  Paper, Chip, TextField, Alert, Snackbar
+  Paper, Chip, Alert, Snackbar, MenuItem, Select, FormControl, InputLabel
 } from '@mui/material';
 import DirectionsBusIcon from '@mui/icons-material/DirectionsBus';
 import QrCodeScannerIcon from '@mui/icons-material/QrCodeScanner';
 import LogoutIcon from '@mui/icons-material/Logout';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import SettingsIcon from '@mui/icons-material/Settings';
+import TextField from '@mui/material/TextField';
 
 export default function OperatorDashboard() {
   const [qrInput, setQrInput] = useState('');
   const [scannedTickets, setScannedTickets] = useState([]);
+  const [routes, setRoutes] = useState([]);
+  const [companyPlates, setCompanyPlates] = useState([]);
+  const [activePlates, setActivePlates] = useState([]); // plates currently in use
+  const [selectedRouteId, setSelectedRouteId] = useState('');
+  const [selectedPlate, setSelectedPlate] = useState('');
+  const [tripActive, setTripActive] = useState(false);
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
+  const watchIdRef = useRef(null);
+  const plateRef = useRef('');
+  const selectedRouteIdRef = useRef('');
   const user = JSON.parse(localStorage.getItem('campusgo_user'));
 
-  const handleLogout = () => {
-    localStorage.clear();
-    window.location.href = '/';
+  const fetchCompanyData = async () => {
+    try {
+      // Get routes
+      const routesRes = await axios.get('http://localhost:5000/api/routes');
+      setRoutes(routesRes.data);
+
+      // Get company plates
+      if (user?.company_id) {
+        const platesRes = await axios.get(`http://localhost:5000/api/buses/company/${user.company_id}`);
+        setCompanyPlates(platesRes.data);
+      }
+
+      // Get active bus locations to know which plates are in use
+      const activeRes = await axios.get('http://localhost:5000/api/locations/active');
+      setActivePlates(activeRes.data.map(b => b.number_plate).filter(Boolean));
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  useEffect(() => {
+    fetchCompanyData();
+    // Refresh active plates every 10 seconds
+    const interval = setInterval(() => {
+      axios.get('http://localhost:5000/api/locations/active')
+        .then(res => setActivePlates(res.data.map(b => b.number_plate).filter(Boolean)))
+        .catch(console.error);
+    }, 10000);
+
+    return () => {
+      clearInterval(interval);
+      if (watchIdRef.current) clearInterval(watchIdRef.current);
+    };
+  }, []);
+
+  const sendLocation = (lat, lng) => {
+    return axios.post('http://localhost:5000/api/locations/update', {
+      operator_id: user.id,
+      latitude: lat,
+      longitude: lng,
+      route_id: selectedRouteIdRef.current,
+      number_plate: plateRef.current
+    });
+  };
+
+  const startTrip = () => {
+    if (!selectedRouteId) {
+      return setSnackbar({ open: true, message: 'Please select a route first.', severity: 'error' });
+    }
+    if (!selectedPlate) {
+      return setSnackbar({ open: true, message: 'Please select a bus plate.', severity: 'error' });
+    }
+
+    plateRef.current = selectedPlate;
+    selectedRouteIdRef.current = selectedRouteId;
+
+    navigator.geolocation.getCurrentPosition(
+      (initialPos) => {
+        setTripActive(true);
+        sendLocation(initialPos.coords.latitude, initialPos.coords.longitude);
+
+        watchIdRef.current = setInterval(() => {
+          navigator.geolocation.getCurrentPosition(
+            async (pos) => {
+              try {
+                await sendLocation(pos.coords.latitude, pos.coords.longitude);
+              } catch (err) { console.error(err); }
+            },
+            (err) => console.error('GPS error:', err),
+            { enableHighAccuracy: true, maximumAge: 3000 }
+          );
+        }, 5000);
+
+        setSnackbar({ open: true, message: `Trip started! Bus ${selectedPlate} is now live.`, severity: 'success' });
+      },
+      () => {
+        setSnackbar({ open: true, message: 'Location permission denied. Please allow location access.', severity: 'error' });
+      }
+    );
+  };
+
+  const stopTrip = async () => {
+    setTripActive(false);
+    if (watchIdRef.current) {
+      clearInterval(watchIdRef.current);
+      watchIdRef.current = null;
+    }
+    try {
+      await axios.delete(`http://localhost:5000/api/locations/stop/${user.id}`);
+      setSnackbar({ open: true, message: 'Trip ended.', severity: 'info' });
+      // Refresh active plates
+      const activeRes = await axios.get('http://localhost:5000/api/locations/active');
+      setActivePlates(activeRes.data.map(b => b.number_plate).filter(Boolean));
+    } catch (err) { console.error(err); }
   };
 
   const handleScan = async () => {
@@ -34,6 +136,12 @@ export default function OperatorDashboard() {
     }
   };
 
+  const handleLogout = () => {
+    if (tripActive) stopTrip();
+    localStorage.clear();
+    window.location.href = '/';
+  };
+
   return (
     <Box sx={{ minHeight: '100vh', background: '#f9f9f9' }}>
       <AppBar position="static" sx={{ background: '#1F1F1F' }}>
@@ -41,6 +149,7 @@ export default function OperatorDashboard() {
           <DirectionsBusIcon sx={{ mr: 1, color: '#2DBE60' }} />
           <Typography variant="h6" fontWeight="bold" sx={{ flexGrow: 1 }}>Campus GO — Operator</Typography>
           <Typography variant="body2" sx={{ mr: 2 }}>Welcome, {user?.full_name}</Typography>
+          <Button color="inherit" startIcon={<SettingsIcon />} onClick={() => window.location.href = '/settings'} sx={{ mr: 1 }}>Settings</Button>
           <Button color="inherit" startIcon={<LogoutIcon />} onClick={handleLogout}>Logout</Button>
         </Toolbar>
       </AppBar>
@@ -62,6 +171,92 @@ export default function OperatorDashboard() {
           </Card>
         </Box>
 
+        {/* Trip Control */}
+        <Card sx={{ borderRadius: 3, mb: 4 }}>
+          <CardContent>
+            <Typography variant="h6" fontWeight="bold" sx={{ mb: 2 }}>🚌 Trip Control</Typography>
+            {!tripActive ? (
+              <Box>
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                  Select your route and bus, then start your trip.
+                </Typography>
+
+                {/* Route Select */}
+                <FormControl fullWidth sx={{ mb: 2 }}>
+                  <InputLabel>Select Route</InputLabel>
+                  <Select
+                    value={selectedRouteId}
+                    label="Select Route"
+                    onChange={e => setSelectedRouteId(e.target.value)}
+                  >
+                    <MenuItem value="">-- Select your route --</MenuItem>
+                    {routes.map(r => (
+                      <MenuItem key={r.id} value={r.id}>{r.name}</MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+
+                {/* Plate Select */}
+                <FormControl fullWidth sx={{ mb: 3 }}>
+                  <InputLabel>Select Bus Plate</InputLabel>
+                  <Select
+                    value={selectedPlate}
+                    label="Select Bus Plate"
+                    onChange={e => setSelectedPlate(e.target.value)}
+                  >
+                    <MenuItem value="">-- Select your bus --</MenuItem>
+                    {companyPlates.length > 0 ? (
+                      companyPlates.map(bus => {
+                        const inUse = activePlates.includes(bus.plate_number) && bus.plate_number !== plateRef.current;
+                        return (
+                          <MenuItem
+                            key={bus.id}
+                            value={bus.plate_number}
+                            disabled={inUse}
+                            sx={{ color: inUse ? '#aaa' : 'inherit' }}
+                          >
+                            {bus.plate_number} {inUse ? '(In Use)' : ''}
+                          </MenuItem>
+                        );
+                      })
+                    ) : (
+                      <MenuItem disabled>No buses registered — contact admin</MenuItem>
+                    )}
+                  </Select>
+                </FormControl>
+
+                <Button
+                  fullWidth
+                  variant="contained"
+                  onClick={startTrip}
+                  disabled={!selectedRouteId || !selectedPlate}
+                  sx={{ py: 1.5, background: '#2DBE60', fontWeight: 'bold', '&:hover': { background: '#1F1F1F' } }}
+                >
+                  🟢 Start Trip
+                </Button>
+              </Box>
+            ) : (
+              <Box sx={{ textAlign: 'center' }}>
+                <Chip
+                  label={`● Active — ${plateRef.current}`}
+                  sx={{ background: '#2DBE60', color: '#fff', fontWeight: 'bold', mb: 2, fontSize: 14 }}
+                />
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                  Bus {plateRef.current} is live — updating every 5 seconds.
+                </Typography>
+                <Button
+                  fullWidth
+                  variant="contained"
+                  onClick={stopTrip}
+                  sx={{ py: 1.5, background: '#f44336', fontWeight: 'bold', '&:hover': { background: '#1F1F1F' } }}
+                >
+                  🔴 Stop Trip
+                </Button>
+              </Box>
+            )}
+          </CardContent>
+        </Card>
+
         {/* QR Scanner */}
         <Card sx={{ borderRadius: 3, mb: 4 }}>
           <CardContent>
@@ -81,8 +276,11 @@ export default function OperatorDashboard() {
                 onKeyDown={e => e.key === 'Enter' && handleScan()}
                 placeholder="Point scanner at QR code or type code here..."
               />
-              <Button variant="contained" onClick={handleScan}
-                sx={{ px: 4, background: '#2DBE60', fontWeight: 'bold', whiteSpace: 'nowrap', '&:hover': { background: '#1F1F1F' } }}>
+              <Button
+                variant="contained"
+                onClick={handleScan}
+                sx={{ px: 4, background: '#2DBE60', fontWeight: 'bold', whiteSpace: 'nowrap', '&:hover': { background: '#1F1F1F' } }}
+              >
                 Validate
               </Button>
             </Box>

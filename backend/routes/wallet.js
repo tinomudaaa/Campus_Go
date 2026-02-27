@@ -34,4 +34,36 @@ router.post('/topup', async (req, res) => {
   }
 });
 
+router.get('/analytics', async (req, res) => {
+  try {
+    const totalTickets = await pool.query('SELECT COUNT(*) FROM tickets');
+    const totalRevenue = await pool.query('SELECT SUM(fare) FROM tickets');
+    const totalStudents = await pool.query("SELECT COUNT(*) FROM users WHERE role = 'student'");
+    const ticketsByRoute = await pool.query(`
+      SELECT routes.name, COUNT(tickets.id) as ticket_count, SUM(tickets.fare) as revenue
+      FROM tickets
+      LEFT JOIN routes ON tickets.route_id = routes.id
+      GROUP BY routes.name
+      ORDER BY ticket_count DESC
+    `);
+    const ticketsByDay = await pool.query(`
+      SELECT DATE(created_at) as date, COUNT(*) as count
+      FROM tickets
+      GROUP BY DATE(created_at)
+      ORDER BY date ASC
+      LIMIT 7
+    `);
+
+    res.json({
+      totalTickets: totalTickets.rows[0].count,
+      totalRevenue: totalRevenue.rows[0].sum || 0,
+      totalStudents: totalStudents.rows[0].count,
+      ticketsByRoute: ticketsByRoute.rows,
+      ticketsByDay: ticketsByDay.rows
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 module.exports = router;

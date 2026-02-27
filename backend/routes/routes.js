@@ -30,4 +30,15 @@ router.post('/', async (req, res) => {
   }
 });
 
+// Delete a route
+router.delete('/:id', async (req, res) => {
+  try {
+    await pool.query('DELETE FROM tickets WHERE route_id = $1', [req.params.id]);
+    await pool.query('DELETE FROM routes WHERE id = $1', [req.params.id]);
+    res.json({ message: 'Route deleted successfully' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 module.exports = router;
