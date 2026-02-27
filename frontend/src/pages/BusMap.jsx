@@ -153,7 +153,7 @@ export default function BusMap() {
 
   const fetchBuses = async () => {
     try {
-      const res = await axios.get('http://localhost:5000/api/locations/active');
+      const res = await axios.get('https://campusgo-production-3b90.up.railway.app/api/locations/active');
       setBuses(res.data);
       setLastUpdated(new Date());
       checkProximity(res.data);

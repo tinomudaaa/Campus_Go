@@ -30,17 +30,17 @@ export default function OperatorDashboard() {
   const fetchCompanyData = async () => {
     try {
       // Get routes
-      const routesRes = await axios.get('http://localhost:5000/api/routes');
+      const routesRes = await axios.get('https://campusgo-production-3b90.up.railway.app/api/routes');
       setRoutes(routesRes.data);
 
       // Get company plates
       if (user?.company_id) {
-        const platesRes = await axios.get(`http://localhost:5000/api/buses/company/${user.company_id}`);
+        const platesRes = await axios.get(`https://campusgo-production-3b90.up.railway.app/api/buses/company/${user.company_id}`);
         setCompanyPlates(platesRes.data);
       }
 
       // Get active bus locations to know which plates are in use
-      const activeRes = await axios.get('http://localhost:5000/api/locations/active');
+      const activeRes = await axios.get('https://campusgo-production-3b90.up.railway.app/api/locations/active');
       setActivePlates(activeRes.data.map(b => b.number_plate).filter(Boolean));
     } catch (err) {
       console.error(err);
@@ -51,7 +51,7 @@ export default function OperatorDashboard() {
     fetchCompanyData();
     // Refresh active plates every 10 seconds
     const interval = setInterval(() => {
-      axios.get('http://localhost:5000/api/locations/active')
+      axios.get('https://campusgo-production-3b90.up.railway.app/api/locations/active')
         .then(res => setActivePlates(res.data.map(b => b.number_plate).filter(Boolean)))
         .catch(console.error);
     }, 10000);
@@ -63,7 +63,7 @@ export default function OperatorDashboard() {
   }, []);
 
   const sendLocation = (lat, lng) => {
-    return axios.post('http://localhost:5000/api/locations/update', {
+    return axios.post('https://campusgo-production-3b90.up.railway.app/api/locations/update', {
       operator_id: user.id,
       latitude: lat,
       longitude: lng,
@@ -115,10 +115,10 @@ export default function OperatorDashboard() {
       watchIdRef.current = null;
     }
     try {
-      await axios.delete(`http://localhost:5000/api/locations/stop/${user.id}`);
+      await axios.delete(`https://campusgo-production-3b90.up.railway.app/api/locations/stop/${user.id}`);
       setSnackbar({ open: true, message: 'Trip ended.', severity: 'info' });
       // Refresh active plates
-      const activeRes = await axios.get('http://localhost:5000/api/locations/active');
+      const activeRes = await axios.get('https://campusgo-production-3b90.up.railway.app/api/locations/active');
       setActivePlates(activeRes.data.map(b => b.number_plate).filter(Boolean));
     } catch (err) { console.error(err); }
   };
@@ -126,7 +126,7 @@ export default function OperatorDashboard() {
   const handleScan = async () => {
     if (!qrInput.trim()) return;
     try {
-      const res = await axios.post('http://localhost:5000/api/tickets/scan', { qr_code: qrInput });
+      const res = await axios.post('https://campusgo-production-3b90.up.railway.app/api/tickets/scan', { qr_code: qrInput });
       setScannedTickets(prev => [res.data, ...prev]);
       setSnackbar({ open: true, message: '✅ Ticket validated successfully!', severity: 'success' });
       setQrInput('');

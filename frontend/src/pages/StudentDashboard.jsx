@@ -29,8 +29,8 @@ export default function StudentDashboard() {
   const fetchData = async () => {
     try {
       const [ticketsRes, routesRes] = await Promise.all([
-        axios.get(`http://localhost:5000/api/tickets/${user.id}`),
-        axios.get('http://localhost:5000/api/routes')
+        axios.get(`https://campusgo-production-3b90.up.railway.app/api/tickets/${user.id}`),
+        axios.get('https://campusgo-production-3b90.up.railway.app/api/routes')
       ]);
       setTickets(ticketsRes.data);
       setRoutes(routesRes.data);
@@ -43,7 +43,7 @@ export default function StudentDashboard() {
 
   const handleBuyTicket = async () => {
     try {
-      await axios.post('http://localhost:5000/api/tickets/buy', {
+      await axios.post('https://campusgo-production-3b90.up.railway.app/api/tickets/buy', {
         student_id: user.id,
         route_id: selectedRoute.id,
         bus_id: null
@@ -63,7 +63,7 @@ export default function StudentDashboard() {
 
   const handleFeedback = async () => {
     try {
-      await axios.post('http://localhost:5000/api/feedback', {
+      await axios.post('https://campusgo-production-3b90.up.railway.app/api/feedback', {
         student_id: user.id,
         route_id: feedbackRoute,
         message: feedbackMessage

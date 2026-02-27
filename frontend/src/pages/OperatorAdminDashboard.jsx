@@ -47,10 +47,10 @@ export default function OperatorAdminDashboard() {
   const fetchAll = async () => {
     try {
       const [busRes, routeRes, staffRes, activeRes] = await Promise.all([
-        axios.get(`http://localhost:5000/api/buses/company/${user?.company_id}`),
-        axios.get(`http://localhost:5000/api/routes`),
-        axios.get(`http://localhost:5000/api/operator-admin/staff`, { headers }),
-        axios.get('http://localhost:5000/api/locations/active'),
+        axios.get(`https://campusgo-production-3b90.up.railway.app/api/buses/company/${user?.company_id}`),
+        axios.get(`https://campusgo-production-3b90.up.railway.app/api/routes`),
+        axios.get(`https://campusgo-production-3b90.up.railway.app/api/operator-admin/staff`, { headers }),
+        axios.get('https://campusgo-production-3b90.up.railway.app/api/locations/active'),
       ]);
       setBuses(busRes.data);
       setRoutes(routeRes.data.filter(r => r.company_id === user?.company_id));
@@ -67,21 +67,21 @@ export default function OperatorAdminDashboard() {
 
   const fetchAnalytics = async () => {
     try {
-      const res = await axios.get('http://localhost:5000/api/operator-admin/analytics', { headers });
+      const res = await axios.get('https://campusgo-production-3b90.up.railway.app/api/operator-admin/analytics', { headers });
       setAnalytics(res.data);
     } catch (err) { console.error(err); }
   };
 
   const fetchFeedback = async () => {
     try {
-      const res = await axios.get('http://localhost:5000/api/operator-admin/feedback', { headers });
+      const res = await axios.get('https://campusgo-production-3b90.up.railway.app/api/operator-admin/feedback', { headers });
       setFeedback(res.data);
     } catch (err) { console.error(err); }
   };
 
   const fetchTrips = async () => {
     try {
-      const res = await axios.get('http://localhost:5000/api/operator-admin/trips', { headers });
+      const res = await axios.get('https://campusgo-production-3b90.up.railway.app/api/operator-admin/trips', { headers });
       setTrips(res.data);
     } catch (err) { console.error(err); }
   };
@@ -89,7 +89,7 @@ export default function OperatorAdminDashboard() {
   useEffect(() => {
     fetchAll();
     const interval = setInterval(() => {
-      axios.get('http://localhost:5000/api/locations/active').then(res => setActiveBuses(res.data)).catch(console.error);
+      axios.get('https://campusgo-production-3b90.up.railway.app/api/locations/active').then(res => setActiveBuses(res.data)).catch(console.error);
     }, 5000);
     return () => clearInterval(interval);
   }, []);
@@ -103,7 +103,7 @@ export default function OperatorAdminDashboard() {
   const handleAddBus = async () => {
     if (!newBus.plate_number.trim()) return;
     try {
-      await axios.post('http://localhost:5000/api/buses', {
+      await axios.post('https://campusgo-production-3b90.up.railway.app/api/buses', {
         company_id: user?.company_id,
         plate_number: newBus.plate_number.trim().toUpperCase(),
         capacity: parseInt(newBus.capacity) || 30,
@@ -117,7 +117,7 @@ export default function OperatorAdminDashboard() {
 
   const handleDeleteBus = async (id) => {
     try {
-      await axios.delete(`http://localhost:5000/api/buses/${id}`);
+      await axios.delete(`https://campusgo-production-3b90.up.railway.app/api/buses/${id}`);
       setSnackbar({ open: true, message: 'Bus removed.', severity: 'info' }); fetchAll();
     } catch (err) { setSnackbar({ open: true, message: 'Failed to remove bus.', severity: 'error' }); }
   };
@@ -125,7 +125,7 @@ export default function OperatorAdminDashboard() {
   const handleAddRoute = async () => {
     if (!newRoute.name.trim()) return;
     try {
-      await axios.post('http://localhost:5000/api/routes', {
+      await axios.post('https://campusgo-production-3b90.up.railway.app/api/routes', {
         company_id: user?.company_id, name: newRoute.name.trim(),
         origin: newRoute.origin.trim() || 'TBD',
         destination: newRoute.destination.trim() || 'TBD',
@@ -138,7 +138,7 @@ export default function OperatorAdminDashboard() {
 
   const handleDeleteRoute = async (id) => {
     try {
-      await axios.delete(`http://localhost:5000/api/routes/${id}`);
+      await axios.delete(`https://campusgo-production-3b90.up.railway.app/api/routes/${id}`);
       setSnackbar({ open: true, message: 'Route removed.', severity: 'info' }); fetchAll();
     } catch (err) { setSnackbar({ open: true, message: 'Failed to remove route.', severity: 'error' }); }
   };
@@ -146,7 +146,7 @@ export default function OperatorAdminDashboard() {
   const handleInviteStaff = async () => {
     if (!inviteEmail.trim()) return;
     try {
-      const res = await axios.post('http://localhost:5000/api/operator-admin/invite-staff', { email: inviteEmail.trim() }, { headers });
+      const res = await axios.post('https://campusgo-production-3b90.up.railway.app/api/operator-admin/invite-staff', { email: inviteEmail.trim() }, { headers });
       setInviteLink(res.data.invite_url);
       setStaffDialog(false); setInviteLinkDialog(true); setInviteEmail(''); fetchAll();
     } catch (err) {
@@ -157,7 +157,7 @@ export default function OperatorAdminDashboard() {
   const handleAddTrip = async () => {
     if (!newTrip.route_id || !newTrip.bus_id || !newTrip.trip_date || !newTrip.departure_time) return;
     try {
-      await axios.post('http://localhost:5000/api/operator-admin/trips', newTrip, { headers });
+      await axios.post('https://campusgo-production-3b90.up.railway.app/api/operator-admin/trips', newTrip, { headers });
       setSnackbar({ open: true, message: 'Trip scheduled!', severity: 'success' });
       setTripDialog(false);
       setNewTrip({ route_id: '', bus_id: '', trip_date: '', departure_time: '' });
@@ -169,7 +169,7 @@ export default function OperatorAdminDashboard() {
 
   const handleDeleteTrip = async (id) => {
     try {
-      await axios.delete(`http://localhost:5000/api/operator-admin/trips/${id}`, { headers });
+      await axios.delete(`https://campusgo-production-3b90.up.railway.app/api/operator-admin/trips/${id}`, { headers });
       setSnackbar({ open: true, message: 'Trip removed.', severity: 'info' });
       fetchTrips();
     } catch (err) { setSnackbar({ open: true, message: 'Failed to remove trip.', severity: 'error' }); }
@@ -177,7 +177,7 @@ export default function OperatorAdminDashboard() {
 
   const handleTripStatus = async (id, status) => {
     try {
-      await axios.patch(`http://localhost:5000/api/operator-admin/trips/${id}/status`, { status }, { headers });
+      await axios.patch(`https://campusgo-production-3b90.up.railway.app/api/operator-admin/trips/${id}/status`, { status }, { headers });
       setSnackbar({ open: true, message: `Trip marked as ${status}.`, severity: 'success' });
       fetchTrips();
     } catch (err) { setSnackbar({ open: true, message: 'Failed to update trip.', severity: 'error' }); }

@@ -95,31 +95,31 @@ export default function AdminDashboard() {
   const [user] = useState(() => JSON.parse(localStorage.getItem('campusgo_user')));
 
   const fetchStudents = async () => {
-    try { const res = await axios.get('http://localhost:5000/api/wallet/students'); setStudents(res.data); }
+    try { const res = await axios.get('https://campusgo-production-3b90.up.railway.app/api/wallet/students'); setStudents(res.data); }
     catch (err) { console.error(err); }
   };
   const fetchRoutes = async () => {
-    try { const res = await axios.get('http://localhost:5000/api/routes'); setRoutes(res.data); }
+    try { const res = await axios.get('https://campusgo-production-3b90.up.railway.app/api/routes'); setRoutes(res.data); }
     catch (err) { console.error(err); }
   };
   const fetchFeedback = async () => {
-    try { const res = await axios.get('http://localhost:5000/api/feedback'); setFeedback(res.data); }
+    try { const res = await axios.get('https://campusgo-production-3b90.up.railway.app/api/feedback'); setFeedback(res.data); }
     catch (err) { console.error(err); }
   };
   const fetchAnalytics = async () => {
-    try { const res = await axios.get('http://localhost:5000/api/wallet/analytics'); setAnalytics(res.data); }
+    try { const res = await axios.get('https://campusgo-production-3b90.up.railway.app/api/wallet/analytics'); setAnalytics(res.data); }
     catch (err) { console.error(err); }
   };
   const fetchActiveBuses = async () => {
     try {
-      const res = await axios.get('http://localhost:5000/api/locations/active');
+      const res = await axios.get('https://campusgo-production-3b90.up.railway.app/api/locations/active');
       setActiveBuses(res.data);
       setLastFleetUpdate(new Date());
     } catch (err) { console.error(err); }
   };
   const fetchCompanies = async () => {
     try {
-      const res = await axios.get('http://localhost:5000/api/admin/companies', {
+      const res = await axios.get('https://campusgo-production-3b90.up.railway.app/api/admin/companies', {
         headers: { 'x-user-id': user?.id }
       });
       setCompanies(res.data);
@@ -141,7 +141,7 @@ export default function AdminDashboard() {
 
   const handleTopup = async () => {
     try {
-      await axios.post('http://localhost:5000/api/wallet/topup', {
+      await axios.post('https://campusgo-production-3b90.up.railway.app/api/wallet/topup', {
         student_id: selectedStudent.id, amount: parseFloat(topupAmount)
       });
       setSnackbar({ open: true, message: `Topped up $${topupAmount} for ${selectedStudent.full_name}`, severity: 'success' });
@@ -156,7 +156,7 @@ export default function AdminDashboard() {
 
   const handleAddRoute = async () => {
     try {
-      await axios.post('http://localhost:5000/api/routes', {
+      await axios.post('https://campusgo-production-3b90.up.railway.app/api/routes', {
         company_id: 1, name: newRoute.name, origin: newRoute.origin,
         destination: newRoute.destination, fare: parseFloat(newRoute.fare)
       });
@@ -171,7 +171,7 @@ export default function AdminDashboard() {
 
   const handleDeleteRoute = async (routeId) => {
     try {
-      await axios.delete(`http://localhost:5000/api/routes/${routeId}`);
+      await axios.delete(`https://campusgo-production-3b90.up.railway.app/api/routes/${routeId}`);
       setSnackbar({ open: true, message: 'Route removed!', severity: 'success' });
       fetchRoutes();
     } catch (err) {
@@ -182,7 +182,7 @@ export default function AdminDashboard() {
   const handleCreateCompany = async () => {
     setCreateCompanyLoading(true);
     try {
-      const res = await axios.post('http://localhost:5000/api/admin/companies', {
+      const res = await axios.post('https://campusgo-production-3b90.up.railway.app/api/admin/companies', {
         name: newCompany.name,
         inviteEmail: newCompany.inviteEmail,
       }, { headers: { 'x-user-id': user?.id } });
@@ -205,7 +205,7 @@ export default function AdminDashboard() {
 
   const handleCompanyStatus = async (companyId, status) => {
     try {
-      await axios.put(`http://localhost:5000/api/admin/companies/${companyId}/status`,
+      await axios.put(`https://campusgo-production-3b90.up.railway.app/api/admin/companies/${companyId}/status`,
         { status },
         { headers: { 'x-user-id': user?.id } }
       );
