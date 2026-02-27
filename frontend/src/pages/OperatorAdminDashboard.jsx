@@ -16,6 +16,15 @@ import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import PeopleIcon from '@mui/icons-material/People';
 import FeedbackIcon from '@mui/icons-material/Feedback';
 import EventIcon from '@mui/icons-material/Event';
+import RouteIcon from '@mui/icons-material/AltRoute';
+import BarChartIcon from '@mui/icons-material/BarChart';
+import ConfirmationNumberIcon from '@mui/icons-material/ConfirmationNumber';
+import AttachMoneyIcon from '@mui/icons-material/AttachMoney';
+import FiberManualRecordIcon from '@mui/icons-material/FiberManualRecord';
+import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
+import CheckIcon from '@mui/icons-material/Check';
+import CloseIcon from '@mui/icons-material/Close';
+import ChatBubbleOutlineIcon from '@mui/icons-material/ChatBubbleOutline';
 
 export default function OperatorAdminDashboard() {
   const [tab, setTab] = useState(0);
@@ -29,7 +38,6 @@ export default function OperatorAdminDashboard() {
   const [stats, setStats] = useState({ buses: 0, routes: 0, staff: 0, activeTrips: 0 });
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
 
-  // Dialogs
   const [busDialog, setBusDialog] = useState(false);
   const [newBus, setNewBus] = useState({ plate_number: '', capacity: '' });
   const [routeDialog, setRouteDialog] = useState(false);
@@ -46,27 +54,18 @@ export default function OperatorAdminDashboard() {
 
   const fetchAll = async () => {
     try {
-        const [busRes, routeRes, staffRes] = await Promise.all([
-            axios.get(`https://campusgo-production-3b90.up.railway.app/api/buses/company/${user?.company_id}`),
-            axios.get(`https://campusgo-production-3b90.up.railway.app/api/operator-admin/routes`, { headers }),
-            axios.get(`https://campusgo-production-3b90.up.railway.app/api/operator-admin/staff`, { headers }),
-        ]);
-        setBuses(busRes.data);
-        setRoutes(routeRes.data);
-        setStaff(staffRes.data);
-        setStats({
-            buses: busRes.data.length,
-            routes: routeRes.data.length,
-            staff: staffRes.data.filter(s => s.status === 'active').length,
-            activeTrips: 0,
-        });
+      const [busRes, routeRes, staffRes] = await Promise.all([
+        axios.get(`https://campusgo-production-3b90.up.railway.app/api/buses/company/${user?.company_id}`),
+        axios.get(`https://campusgo-production-3b90.up.railway.app/api/operator-admin/routes`, { headers }),
+        axios.get(`https://campusgo-production-3b90.up.railway.app/api/operator-admin/staff`, { headers }),
+      ]);
+      setBuses(busRes.data); setRoutes(routeRes.data); setStaff(staffRes.data);
+      setStats({ buses: busRes.data.length, routes: routeRes.data.length, staff: staffRes.data.filter(s => s.status === 'active').length, activeTrips: 0 });
     } catch (err) { console.error(err); }
-
-  // Fetch active buses separately so it doesn't break the rest
     try {
-        const activeRes = await axios.get('https://campusgo-production-3b90.up.railway.app/api/locations/active');
-        setActiveBuses(activeRes.data);
-        setStats(prev => ({ ...prev, activeTrips: activeRes.data.length }));
+      const activeRes = await axios.get('https://campusgo-production-3b90.up.railway.app/api/locations/active');
+      setActiveBuses(activeRes.data);
+      setStats(prev => ({ ...prev, activeTrips: activeRes.data.length }));
     } catch (err) { console.error('Active buses error:', err); }
   };
 
@@ -175,16 +174,14 @@ export default function OperatorAdminDashboard() {
   const handleDeleteTrip = async (id) => {
     try {
       await axios.delete(`https://campusgo-production-3b90.up.railway.app/api/operator-admin/trips/${id}`, { headers });
-      setSnackbar({ open: true, message: 'Trip removed.', severity: 'info' });
-      fetchTrips();
+      setSnackbar({ open: true, message: 'Trip removed.', severity: 'info' }); fetchTrips();
     } catch (err) { setSnackbar({ open: true, message: 'Failed to remove trip.', severity: 'error' }); }
   };
 
   const handleTripStatus = async (id, status) => {
     try {
       await axios.patch(`https://campusgo-production-3b90.up.railway.app/api/operator-admin/trips/${id}/status`, { status }, { headers });
-      setSnackbar({ open: true, message: `Trip marked as ${status}.`, severity: 'success' });
-      fetchTrips();
+      setSnackbar({ open: true, message: `Trip marked as ${status}.`, severity: 'success' }); fetchTrips();
     } catch (err) { setSnackbar({ open: true, message: 'Failed to update trip.', severity: 'error' }); }
   };
 
@@ -200,7 +197,7 @@ export default function OperatorAdminDashboard() {
       {items.map((s, i) => (
         <Card key={i} sx={{ flex: 1, minWidth: 160, borderRadius: 3, borderLeft: '4px solid #2DBE60' }}>
           <CardContent>
-            {s.icon && <Typography fontSize={28}>{s.icon}</Typography>}
+            {s.icon && <Box sx={{ mb: 0.5 }}>{s.icon}</Box>}
             <Typography color="text.secondary" variant="body2">{s.label}</Typography>
             <Typography variant="h4" fontWeight="bold" color="#1F1F1F">{s.value}</Typography>
           </CardContent>
@@ -235,12 +232,12 @@ export default function OperatorAdminDashboard() {
         <Tabs value={tab} onChange={(e, v) => setTab(v)} variant="scrollable" scrollButtons="auto"
           sx={{ px: 3, '& .MuiTab-root.Mui-selected': { color: '#2DBE60' }, '& .MuiTabs-indicator': { background: '#2DBE60' } }}>
           <Tab label="Overview" />
-          <Tab label="Buses" />
-          <Tab label="Routes" />
-          <Tab label="Live Trips" />
-          <Tab label="Staff" />
+          <Tab label="Buses" icon={<DirectionsBusIcon fontSize="small" />} iconPosition="start" />
+          <Tab label="Routes" icon={<RouteIcon fontSize="small" />} iconPosition="start" />
+          <Tab label="Live Trips" icon={<FiberManualRecordIcon fontSize="small" sx={{ color: '#2DBE60' }} />} iconPosition="start" />
+          <Tab label="Staff" icon={<PeopleIcon fontSize="small" />} iconPosition="start" />
           <Tab label="Trips" icon={<EventIcon fontSize="small" />} iconPosition="start" />
-          <Tab label="Analytics" />
+          <Tab label="Analytics" icon={<BarChartIcon fontSize="small" />} iconPosition="start" />
           <Tab label="Feedback" icon={<FeedbackIcon fontSize="small" />} iconPosition="start" />
         </Tabs>
       </Box>
@@ -252,22 +249,28 @@ export default function OperatorAdminDashboard() {
           <Box>
             <Typography variant="h5" fontWeight="bold" sx={{ mb: 3 }}>Overview</Typography>
             {statCards([
-              { label: 'Total Buses', value: stats.buses, icon: '🚌' },
-              { label: 'Routes', value: stats.routes, icon: '🗺️' },
-              { label: 'Active Staff', value: stats.staff, icon: '👥' },
-              { label: 'Active Trips', value: stats.activeTrips, icon: '🟢' },
+              { label: 'Total Buses', value: stats.buses, icon: <DirectionsBusIcon sx={{ color: '#2DBE60' }} /> },
+              { label: 'Routes', value: stats.routes, icon: <RouteIcon sx={{ color: '#2DBE60' }} /> },
+              { label: 'Active Staff', value: stats.staff, icon: <PeopleIcon sx={{ color: '#2DBE60' }} /> },
+              { label: 'Active Trips', value: stats.activeTrips, icon: <FiberManualRecordIcon sx={{ color: '#2DBE60' }} /> },
             ])}
             {activeBuses.length > 0 && (
               <Card sx={{ borderRadius: 3 }}>
                 <CardContent>
-                  <Typography variant="h6" fontWeight="bold" sx={{ mb: 2 }}>🟢 Buses Currently on Road</Typography>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+                    <FiberManualRecordIcon sx={{ color: '#2DBE60', fontSize: 16 }} />
+                    <Typography variant="h6" fontWeight="bold">Buses Currently on Road</Typography>
+                  </Box>
                   {activeBuses.map(bus => (
                     <Box key={bus.operator_id} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', p: 2, mb: 1, borderRadius: 2, border: '1px solid #eee' }}>
                       <Box>
-                        <Typography fontWeight="bold">🚌 {bus.route_name || 'Unknown Route'}</Typography>
-                        <Typography fontSize={13} color="text.secondary">🚗 {bus.number_plate || 'No plate'}</Typography>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                          <DirectionsBusIcon sx={{ fontSize: 16, color: '#2DBE60' }} />
+                          <Typography fontWeight="bold">{bus.route_name || 'Unknown Route'}</Typography>
+                        </Box>
+                        <Typography fontSize={13} color="text.secondary">{bus.number_plate || 'No plate'}</Typography>
                       </Box>
-                      <Chip label="● Live" size="small" sx={{ background: '#2DBE60', color: '#fff', fontWeight: 'bold' }} />
+                      <Chip icon={<FiberManualRecordIcon style={{ fontSize: 10 }} />} label="Live" size="small" sx={{ background: '#2DBE60', color: '#fff', fontWeight: 'bold' }} />
                     </Box>
                   ))}
                 </CardContent>
@@ -286,7 +289,10 @@ export default function OperatorAdminDashboard() {
             <TableContainer component={Paper} elevation={0} sx={{ borderRadius: 3 }}>
               <Table>
                 <TableHead><TableRow sx={{ background: '#f9f9f9' }}>
-                  <TableCell><strong>Plate Number</strong></TableCell><TableCell><strong>Capacity</strong></TableCell><TableCell><strong>Status</strong></TableCell><TableCell><strong>Action</strong></TableCell>
+                  <TableCell><strong>Plate Number</strong></TableCell>
+                  <TableCell><strong>Capacity</strong></TableCell>
+                  <TableCell><strong>Status</strong></TableCell>
+                  <TableCell><strong>Action</strong></TableCell>
                 </TableRow></TableHead>
                 <TableBody>
                   {buses.map(bus => {
@@ -295,10 +301,20 @@ export default function OperatorAdminDashboard() {
                       <TableRow key={bus.id} hover>
                         <TableCell><strong>{bus.plate_number}</strong></TableCell>
                         <TableCell>{bus.capacity || '—'}</TableCell>
-                        <TableCell><Chip label={isActive ? '● On Road' : 'Available'} size="small" sx={{ background: isActive ? '#2DBE60' : '#eee', color: isActive ? '#fff' : '#888', fontWeight: 'bold' }} /></TableCell>
+                        <TableCell>
+                          <Chip
+                            icon={isActive ? <FiberManualRecordIcon style={{ fontSize: 10 }} /> : undefined}
+                            label={isActive ? 'On Road' : 'Available'}
+                            size="small"
+                            sx={{ background: isActive ? '#2DBE60' : '#eee', color: isActive ? '#fff' : '#888', fontWeight: 'bold' }} />
+                        </TableCell>
                         <TableCell>
                           <Tooltip title={isActive ? "Can't remove active bus" : "Remove"}>
-                            <span><IconButton size="small" disabled={isActive} onClick={() => handleDeleteBus(bus.id)} sx={{ color: '#f44336' }}><DeleteIcon fontSize="small" /></IconButton></span>
+                            <span>
+                              <IconButton size="small" disabled={isActive} onClick={() => handleDeleteBus(bus.id)} sx={{ color: '#f44336' }}>
+                                <DeleteIcon fontSize="small" />
+                              </IconButton>
+                            </span>
                           </Tooltip>
                         </TableCell>
                       </TableRow>
@@ -321,12 +337,18 @@ export default function OperatorAdminDashboard() {
             <TableContainer component={Paper} elevation={0} sx={{ borderRadius: 3 }}>
               <Table>
                 <TableHead><TableRow sx={{ background: '#f9f9f9' }}>
-                  <TableCell><strong>Route Name</strong></TableCell><TableCell><strong>Origin</strong></TableCell><TableCell><strong>Destination</strong></TableCell><TableCell><strong>Fare</strong></TableCell><TableCell><strong>Action</strong></TableCell>
+                  <TableCell><strong>Route Name</strong></TableCell>
+                  <TableCell><strong>Origin</strong></TableCell>
+                  <TableCell><strong>Destination</strong></TableCell>
+                  <TableCell><strong>Fare</strong></TableCell>
+                  <TableCell><strong>Action</strong></TableCell>
                 </TableRow></TableHead>
                 <TableBody>
                   {routes.map(route => (
                     <TableRow key={route.id} hover>
-                      <TableCell><strong>{route.name}</strong></TableCell><TableCell>{route.origin}</TableCell><TableCell>{route.destination}</TableCell>
+                      <TableCell><strong>{route.name}</strong></TableCell>
+                      <TableCell>{route.origin}</TableCell>
+                      <TableCell>{route.destination}</TableCell>
                       <TableCell><Chip label={`$${parseFloat(route.fare).toFixed(2)}`} size="small" sx={{ background: '#2DBE60', color: '#fff', fontWeight: 'bold' }} /></TableCell>
                       <TableCell><IconButton size="small" onClick={() => handleDeleteRoute(route.id)} sx={{ color: '#f44336' }}><DeleteIcon fontSize="small" /></IconButton></TableCell>
                     </TableRow>
@@ -349,12 +371,15 @@ export default function OperatorAdminDashboard() {
                   <CardContent>
                     <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <Box>
-                        <Typography fontWeight="bold">🚌 {bus.route_name || 'Unknown Route'}</Typography>
-                        <Typography fontSize={14} color="text.secondary">🚗 {bus.number_plate || 'No plate'}</Typography>
-                        <Typography fontSize={12} color="text.secondary">📍 {parseFloat(bus.latitude).toFixed(5)}, {parseFloat(bus.longitude).toFixed(5)}</Typography>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                          <DirectionsBusIcon sx={{ fontSize: 16, color: '#2DBE60' }} />
+                          <Typography fontWeight="bold">{bus.route_name || 'Unknown Route'}</Typography>
+                        </Box>
+                        <Typography fontSize={14} color="text.secondary">{bus.number_plate || 'No plate'}</Typography>
+                        <Typography fontSize={12} color="text.secondary">{parseFloat(bus.latitude).toFixed(5)}, {parseFloat(bus.longitude).toFixed(5)}</Typography>
                       </Box>
                       <Box sx={{ textAlign: 'right' }}>
-                        <Chip label="● Live" size="small" sx={{ background: '#2DBE60', color: '#fff', fontWeight: 'bold', mb: 1 }} />
+                        <Chip icon={<FiberManualRecordIcon style={{ fontSize: 10 }} />} label="Live" size="small" sx={{ background: '#2DBE60', color: '#fff', fontWeight: 'bold', mb: 1 }} />
                         <Typography fontSize={12} color="text.secondary" display="block">Updated {minsAgo === 0 ? 'just now' : `${minsAgo}m ago`}</Typography>
                       </Box>
                     </Box>
@@ -363,7 +388,7 @@ export default function OperatorAdminDashboard() {
               );
             }) : (
               <Box sx={{ textAlign: 'center', py: 8, background: '#f9f9f9', borderRadius: 3, border: '1px dashed #ccc' }}>
-                <Typography fontSize={48}>🚌</Typography>
+                <DirectionsBusIcon sx={{ fontSize: 48, color: '#ccc' }} />
                 <Typography fontWeight="bold" color="text.secondary" mt={1}>No active trips right now</Typography>
                 <Typography fontSize={13} color="text.secondary">When your staff start trips, they'll appear here live</Typography>
               </Box>
@@ -381,7 +406,10 @@ export default function OperatorAdminDashboard() {
             <TableContainer component={Paper} elevation={0} sx={{ borderRadius: 3 }}>
               <Table>
                 <TableHead><TableRow sx={{ background: '#f9f9f9' }}>
-                  <TableCell><strong>Name</strong></TableCell><TableCell><strong>Email</strong></TableCell><TableCell><strong>Status</strong></TableCell><TableCell><strong>Joined</strong></TableCell>
+                  <TableCell><strong>Name</strong></TableCell>
+                  <TableCell><strong>Email</strong></TableCell>
+                  <TableCell><strong>Status</strong></TableCell>
+                  <TableCell><strong>Joined</strong></TableCell>
                 </TableRow></TableHead>
                 <TableBody>
                   {staff.map((s, i) => (
@@ -395,7 +423,13 @@ export default function OperatorAdminDashboard() {
                         </Box>
                       </TableCell>
                       <TableCell>{s.email}</TableCell>
-                      <TableCell><Chip label={s.status === 'active' ? '✓ Active' : '⏳ Invite Pending'} size="small" sx={{ background: s.status === 'active' ? '#2DBE60' : '#ff9800', color: '#fff', fontWeight: 'bold' }} /></TableCell>
+                      <TableCell>
+                        <Chip
+                          icon={s.status === 'active' ? <CheckIcon style={{ fontSize: 13 }} /> : <EventIcon style={{ fontSize: 13 }} />}
+                          label={s.status === 'active' ? 'Active' : 'Invite Pending'}
+                          size="small"
+                          sx={{ background: s.status === 'active' ? '#2DBE60' : '#ff9800', color: '#fff', fontWeight: 'bold' }} />
+                      </TableCell>
                       <TableCell>{s.created_at ? new Date(s.created_at).toLocaleDateString() : '—'}</TableCell>
                     </TableRow>
                   ))}
@@ -413,14 +447,11 @@ export default function OperatorAdminDashboard() {
               <Typography variant="h5" fontWeight="bold">Trip Schedule</Typography>
               <Button variant="contained" startIcon={<AddIcon />} sx={{ background: '#2DBE60', '&:hover': { background: '#1F1F1F' } }} onClick={() => setTripDialog(true)}>Schedule Trip</Button>
             </Box>
-
-            {/* Today's trips highlight */}
             {trips.filter(t => t.trip_date === today).length > 0 && (
               <Alert severity="info" sx={{ mb: 3, borderRadius: 2 }}>
                 <strong>{trips.filter(t => t.trip_date === today).length} trip(s) scheduled for today.</strong> Your staff will see these when they log in.
               </Alert>
             )}
-
             <TableContainer component={Paper} elevation={0} sx={{ borderRadius: 3 }}>
               <Table>
                 <TableHead><TableRow sx={{ background: '#f9f9f9' }}>
@@ -451,19 +482,17 @@ export default function OperatorAdminDashboard() {
                           <Typography fontSize={12} color="text.secondary">{trip.origin} → {trip.destination}</Typography>
                         </TableCell>
                         <TableCell>{trip.plate_number}</TableCell>
-                        <TableCell>
-                          <Chip label={s.label} size="small" sx={{ background: s.bg, color: '#fff', fontWeight: 'bold' }} />
-                        </TableCell>
+                        <TableCell><Chip label={s.label} size="small" sx={{ background: s.bg, color: '#fff', fontWeight: 'bold' }} /></TableCell>
                         <TableCell>
                           <Box sx={{ display: 'flex', gap: 0.5 }}>
                             {trip.status === 'scheduled' && (
                               <Tooltip title="Mark as Completed">
-                                <IconButton size="small" onClick={() => handleTripStatus(trip.id, 'completed')} sx={{ color: '#888' }}>✓</IconButton>
+                                <IconButton size="small" onClick={() => handleTripStatus(trip.id, 'completed')} sx={{ color: '#888' }}><CheckIcon fontSize="small" /></IconButton>
                               </Tooltip>
                             )}
                             {trip.status === 'scheduled' && (
                               <Tooltip title="Cancel Trip">
-                                <IconButton size="small" onClick={() => handleTripStatus(trip.id, 'cancelled')} sx={{ color: '#ff9800' }}>✕</IconButton>
+                                <IconButton size="small" onClick={() => handleTripStatus(trip.id, 'cancelled')} sx={{ color: '#ff9800' }}><CloseIcon fontSize="small" /></IconButton>
                               </Tooltip>
                             )}
                             <Tooltip title="Delete">
@@ -476,8 +505,8 @@ export default function OperatorAdminDashboard() {
                   })}
                   {trips.length === 0 && (
                     <TableRow><TableCell colSpan={6} align="center" sx={{ py: 6, color: 'text.secondary' }}>
-                      <Typography fontSize={36}>🗓️</Typography>
-                      <Typography fontWeight="bold">No trips scheduled yet</Typography>
+                      <CalendarTodayIcon sx={{ fontSize: 36, color: '#ccc' }} />
+                      <Typography fontWeight="bold" mt={1}>No trips scheduled yet</Typography>
                       <Typography fontSize={13}>Click "Schedule Trip" to create your first trip</Typography>
                     </TableCell></TableRow>
                   )}
@@ -494,24 +523,33 @@ export default function OperatorAdminDashboard() {
             {analytics ? (
               <>
                 {statCards([
-                  { label: 'Total Tickets Sold', value: analytics.total_tickets, icon: '🎫' },
-                  { label: 'Total Revenue', value: `$${parseFloat(analytics.total_revenue).toFixed(2)}`, icon: '💰' },
-                  { label: 'Total Buses', value: analytics.total_buses, icon: '🚌' },
-                  { label: 'Total Routes', value: analytics.total_routes, icon: '🗺️' },
-                  { label: 'Active Staff', value: analytics.total_staff, icon: '👥' },
+                  { label: 'Total Tickets Sold', value: analytics.total_tickets, icon: <ConfirmationNumberIcon sx={{ color: '#2DBE60' }} /> },
+                  { label: 'Total Revenue', value: `$${parseFloat(analytics.total_revenue).toFixed(2)}`, icon: <AttachMoneyIcon sx={{ color: '#2DBE60' }} /> },
+                  { label: 'Total Buses', value: analytics.total_buses, icon: <DirectionsBusIcon sx={{ color: '#2DBE60' }} /> },
+                  { label: 'Total Routes', value: analytics.total_routes, icon: <RouteIcon sx={{ color: '#2DBE60' }} /> },
+                  { label: 'Active Staff', value: analytics.total_staff, icon: <PeopleIcon sx={{ color: '#2DBE60' }} /> },
                 ])}
                 <Card sx={{ borderRadius: 3 }}>
                   <CardContent>
-                    <Typography variant="h6" fontWeight="bold" sx={{ mb: 2 }}>🎫 Recent Ticket Sales</Typography>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+                      <ConfirmationNumberIcon sx={{ color: '#2DBE60' }} />
+                      <Typography variant="h6" fontWeight="bold">Recent Ticket Sales</Typography>
+                    </Box>
                     <TableContainer>
                       <Table size="small">
                         <TableHead><TableRow sx={{ background: '#f9f9f9' }}>
-                          <TableCell><strong>Ticket #</strong></TableCell><TableCell><strong>Student</strong></TableCell><TableCell><strong>Route</strong></TableCell><TableCell><strong>Fare</strong></TableCell><TableCell><strong>Date</strong></TableCell>
+                          <TableCell><strong>Ticket #</strong></TableCell>
+                          <TableCell><strong>Student</strong></TableCell>
+                          <TableCell><strong>Route</strong></TableCell>
+                          <TableCell><strong>Fare</strong></TableCell>
+                          <TableCell><strong>Date</strong></TableCell>
                         </TableRow></TableHead>
                         <TableBody>
                           {analytics.recent_tickets.map(t => (
                             <TableRow key={t.id} hover>
-                              <TableCell>#{t.id}</TableCell><TableCell>{t.student_name}</TableCell><TableCell>{t.route_name}</TableCell>
+                              <TableCell>#{t.id}</TableCell>
+                              <TableCell>{t.student_name}</TableCell>
+                              <TableCell>{t.route_name}</TableCell>
                               <TableCell><Chip label={`$${parseFloat(t.fare).toFixed(2)}`} size="small" sx={{ background: '#2DBE60', color: '#fff' }} /></TableCell>
                               <TableCell>{new Date(t.created_at).toLocaleDateString()}</TableCell>
                             </TableRow>
@@ -532,10 +570,9 @@ export default function OperatorAdminDashboard() {
           <Box>
             <Typography variant="h5" fontWeight="bold" sx={{ mb: 1 }}>Student Feedback</Typography>
             <Typography color="text.secondary" sx={{ mb: 3 }}>Feedback submitted by students for your routes.</Typography>
-
             {feedback.length === 0 ? (
               <Box sx={{ textAlign: 'center', py: 8, background: '#f9f9f9', borderRadius: 3, border: '1px dashed #ccc' }}>
-                <Typography fontSize={48}>💬</Typography>
+                <ChatBubbleOutlineIcon sx={{ fontSize: 48, color: '#ccc' }} />
                 <Typography fontWeight="bold" color="text.secondary" mt={1}>No feedback yet</Typography>
                 <Typography fontSize={13} color="text.secondary">Student feedback about your routes will appear here</Typography>
               </Box>
@@ -566,12 +603,15 @@ export default function OperatorAdminDashboard() {
             )}
           </Box>
         )}
-
       </Box>
 
       {/* Add Bus Dialog */}
       <Dialog open={busDialog} onClose={() => setBusDialog(false)} maxWidth="xs" fullWidth>
-        <DialogTitle fontWeight="bold">🚌 Add New Bus</DialogTitle>
+        <DialogTitle fontWeight="bold">
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <DirectionsBusIcon sx={{ color: '#2DBE60' }} /> Add New Bus
+          </Box>
+        </DialogTitle>
         <DialogContent>
           <TextField fullWidth label="Plate Number" value={newBus.plate_number} onChange={e => setNewBus({ ...newBus, plate_number: e.target.value.toUpperCase() })} placeholder="e.g. ABC 1234" sx={{ mb: 2, mt: 1 }} inputProps={{ maxLength: 15 }} />
           <TextField fullWidth label="Capacity (seats)" type="number" value={newBus.capacity} onChange={e => setNewBus({ ...newBus, capacity: e.target.value })} placeholder="e.g. 30" inputProps={{ min: 1 }} />
@@ -584,7 +624,11 @@ export default function OperatorAdminDashboard() {
 
       {/* Add Route Dialog */}
       <Dialog open={routeDialog} onClose={() => setRouteDialog(false)} maxWidth="xs" fullWidth>
-        <DialogTitle fontWeight="bold">🗺️ Add New Route</DialogTitle>
+        <DialogTitle fontWeight="bold">
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <RouteIcon sx={{ color: '#2DBE60' }} /> Add New Route
+          </Box>
+        </DialogTitle>
         <DialogContent>
           <TextField fullWidth label="Route Name" value={newRoute.name} onChange={e => setNewRoute({ ...newRoute, name: e.target.value })} placeholder="e.g. Campus to Town" sx={{ mb: 2, mt: 1 }} />
           <TextField fullWidth label="Origin" value={newRoute.origin} onChange={e => setNewRoute({ ...newRoute, origin: e.target.value })} placeholder="e.g. Campus Gate" sx={{ mb: 2 }} />
@@ -599,7 +643,11 @@ export default function OperatorAdminDashboard() {
 
       {/* Invite Staff Dialog */}
       <Dialog open={staffDialog} onClose={() => setStaffDialog(false)} maxWidth="xs" fullWidth>
-        <DialogTitle fontWeight="bold">👥 Invite Staff Member</DialogTitle>
+        <DialogTitle fontWeight="bold">
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <PeopleIcon sx={{ color: '#2DBE60' }} /> Invite Staff Member
+          </Box>
+        </DialogTitle>
         <DialogContent>
           <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>Enter the email of the driver to invite. They'll set up their account as Operator Staff.</Typography>
           <TextField fullWidth label="Staff Email" type="email" value={inviteEmail} onChange={e => setInviteEmail(e.target.value)} placeholder="driver@example.com" sx={{ mt: 1 }} />
@@ -612,7 +660,11 @@ export default function OperatorAdminDashboard() {
 
       {/* Invite Link Dialog */}
       <Dialog open={inviteLinkDialog} onClose={() => setInviteLinkDialog(false)} maxWidth="sm" fullWidth>
-        <DialogTitle fontWeight="bold">✅ Staff Invite Link Generated!</DialogTitle>
+        <DialogTitle fontWeight="bold">
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <CheckIcon sx={{ color: '#2DBE60' }} /> Staff Invite Link Generated!
+          </Box>
+        </DialogTitle>
         <DialogContent>
           <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>Share this link with your staff member. They'll use it to create their Operator Staff account.</Typography>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, p: 2, background: '#f5f5f5', borderRadius: 2 }}>
@@ -627,7 +679,11 @@ export default function OperatorAdminDashboard() {
 
       {/* Schedule Trip Dialog */}
       <Dialog open={tripDialog} onClose={() => setTripDialog(false)} maxWidth="xs" fullWidth>
-        <DialogTitle fontWeight="bold">🗓️ Schedule a Trip</DialogTitle>
+        <DialogTitle fontWeight="bold">
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <CalendarTodayIcon sx={{ color: '#2DBE60' }} /> Schedule a Trip
+          </Box>
+        </DialogTitle>
         <DialogContent>
           <FormControl fullWidth sx={{ mb: 2, mt: 1 }}>
             <InputLabel>Route</InputLabel>
