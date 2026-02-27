@@ -66,7 +66,7 @@ router.post('/invite-staff', requireOperatorAdmin, async (req, res) => {
 
     res.json({
       message: 'Invite created',
-      invite_url: `http://localhost:5173/invite/${token}`,
+      
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
