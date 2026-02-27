@@ -16,19 +16,19 @@ const requireOperatorAdmin = async (req, res, next) => {
   next();
 };
 
-// GET staff — active staff + pending invites
+// GET staff
 router.get('/staff', requireOperatorAdmin, async (req, res) => {
   try {
     const staffResult = await pool.query(
       `SELECT id, full_name, email, 'active' as status, created_at
-       FROM users 
+       FROM users
        WHERE company_id = $1 AND role = 'operator_staff'
        ORDER BY full_name`,
       [req.companyId]
     );
     const inviteResult = await pool.query(
       `SELECT id, email, NULL as full_name, 'pending' as status, created_at
-       FROM invites 
+       FROM invites
        WHERE company_id = $1 AND role = 'operator_staff' AND status = 'pending'
        ORDER BY created_at DESC`,
       [req.companyId]
@@ -65,10 +65,7 @@ router.post('/invite-staff', requireOperatorAdmin, async (req, res) => {
     );
 
     const invite_url = `${process.env.FRONTEND_URL}/invite/${token}`;
-    res.json({
-        message: 'Invite created',
-        invite_url,
-    });
+    res.json({ message: 'Invite created', invite_url });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -98,7 +95,7 @@ router.get('/analytics', requireOperatorAdmin, async (req, res) => {
         SELECT t.id, t.fare, t.created_at, r.name as route_name, u.full_name as student_name
         FROM tickets t
         JOIN routes r ON r.id = t.route_id
-        JOIN users u ON u.id = t.student_id
+        JOIN users u ON u.id = t.user_id
         WHERE r.company_id = $1
         ORDER BY t.created_at DESC
         LIMIT 10
@@ -127,7 +124,7 @@ router.get('/feedback', requireOperatorAdmin, async (req, res) => {
              u.full_name as student_name
       FROM feedback f
       JOIN routes r ON r.id = f.route_id
-      JOIN users u ON u.id = f.student_id
+      JOIN users u ON u.id = f.user_id
       WHERE r.company_id = $1
       ORDER BY f.created_at DESC
     `, [req.companyId]);
