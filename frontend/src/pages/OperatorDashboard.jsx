@@ -5,19 +5,20 @@ import {
   Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
   Paper, Chip, Alert, Snackbar, MenuItem, Select, FormControl, InputLabel
 } from '@mui/material';
-import DirectionsBusIcon from '@mui/icons-material/DirectionsBus';
 import QrCodeScannerIcon from '@mui/icons-material/QrCodeScanner';
-import LogoutIcon from '@mui/icons-material/Logout';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
-import SettingsIcon from '@mui/icons-material/Settings';
+import FiberManualRecordIcon from '@mui/icons-material/FiberManualRecord';
+import StopCircleIcon from '@mui/icons-material/StopCircle';
+import PlayCircleIcon from '@mui/icons-material/PlayCircle';
 import TextField from '@mui/material/TextField';
+import CampusGoHeader from './CampusGoHeader';
 
 export default function OperatorDashboard() {
   const [qrInput, setQrInput] = useState('');
   const [scannedTickets, setScannedTickets] = useState([]);
   const [routes, setRoutes] = useState([]);
   const [companyPlates, setCompanyPlates] = useState([]);
-  const [activePlates, setActivePlates] = useState([]); // plates currently in use
+  const [activePlates, setActivePlates] = useState([]);
   const [selectedRouteId, setSelectedRouteId] = useState('');
   const [selectedPlate, setSelectedPlate] = useState('');
   const [tripActive, setTripActive] = useState(false);
@@ -29,33 +30,24 @@ export default function OperatorDashboard() {
 
   const fetchCompanyData = async () => {
     try {
-      // Get routes
       const routesRes = await axios.get('https://campusgo-production-3b90.up.railway.app/api/routes');
       setRoutes(routesRes.data);
-
-      // Get company plates
       if (user?.company_id) {
         const platesRes = await axios.get(`https://campusgo-production-3b90.up.railway.app/api/buses/company/${user.company_id}`);
         setCompanyPlates(platesRes.data);
       }
-
-      // Get active bus locations to know which plates are in use
       const activeRes = await axios.get('https://campusgo-production-3b90.up.railway.app/api/locations/active');
       setActivePlates(activeRes.data.map(b => b.number_plate).filter(Boolean));
-    } catch (err) {
-      console.error(err);
-    }
+    } catch (err) { console.error(err); }
   };
 
   useEffect(() => {
     fetchCompanyData();
-    // Refresh active plates every 10 seconds
     const interval = setInterval(() => {
       axios.get('https://campusgo-production-3b90.up.railway.app/api/locations/active')
         .then(res => setActivePlates(res.data.map(b => b.number_plate).filter(Boolean)))
         .catch(console.error);
     }, 10000);
-
     return () => {
       clearInterval(interval);
       if (watchIdRef.current) clearInterval(watchIdRef.current);
@@ -64,21 +56,14 @@ export default function OperatorDashboard() {
 
   const sendLocation = (lat, lng) => {
     return axios.post('https://campusgo-production-3b90.up.railway.app/api/locations/update', {
-      operator_id: user.id,
-      latitude: lat,
-      longitude: lng,
-      route_id: selectedRouteIdRef.current,
-      number_plate: plateRef.current
+      operator_id: user.id, latitude: lat, longitude: lng,
+      route_id: selectedRouteIdRef.current, number_plate: plateRef.current
     });
   };
 
   const startTrip = () => {
-    if (!selectedRouteId) {
-      return setSnackbar({ open: true, message: 'Please select a route first.', severity: 'error' });
-    }
-    if (!selectedPlate) {
-      return setSnackbar({ open: true, message: 'Please select a bus plate.', severity: 'error' });
-    }
+    if (!selectedRouteId) return setSnackbar({ open: true, message: 'Please select a route first.', severity: 'error' });
+    if (!selectedPlate) return setSnackbar({ open: true, message: 'Please select a bus plate.', severity: 'error' });
 
     plateRef.current = selectedPlate;
     selectedRouteIdRef.current = selectedRouteId;
@@ -87,37 +72,28 @@ export default function OperatorDashboard() {
       (initialPos) => {
         setTripActive(true);
         sendLocation(initialPos.coords.latitude, initialPos.coords.longitude);
-
         watchIdRef.current = setInterval(() => {
           navigator.geolocation.getCurrentPosition(
             async (pos) => {
-              try {
-                await sendLocation(pos.coords.latitude, pos.coords.longitude);
-              } catch (err) { console.error(err); }
+              try { await sendLocation(pos.coords.latitude, pos.coords.longitude); }
+              catch (err) { console.error(err); }
             },
             (err) => console.error('GPS error:', err),
             { enableHighAccuracy: true, maximumAge: 3000 }
           );
         }, 5000);
-
         setSnackbar({ open: true, message: `Trip started! Bus ${selectedPlate} is now live.`, severity: 'success' });
       },
-      () => {
-        setSnackbar({ open: true, message: 'Location permission denied. Please allow location access.', severity: 'error' });
-      }
+      () => setSnackbar({ open: true, message: 'Location permission denied. Please allow location access.', severity: 'error' })
     );
   };
 
   const stopTrip = async () => {
     setTripActive(false);
-    if (watchIdRef.current) {
-      clearInterval(watchIdRef.current);
-      watchIdRef.current = null;
-    }
+    if (watchIdRef.current) { clearInterval(watchIdRef.current); watchIdRef.current = null; }
     try {
       await axios.delete(`https://campusgo-production-3b90.up.railway.app/api/locations/stop/${user.id}`);
       setSnackbar({ open: true, message: 'Trip ended.', severity: 'info' });
-      // Refresh active plates
       const activeRes = await axios.get('https://campusgo-production-3b90.up.railway.app/api/locations/active');
       setActivePlates(activeRes.data.map(b => b.number_plate).filter(Boolean));
     } catch (err) { console.error(err); }
@@ -128,10 +104,10 @@ export default function OperatorDashboard() {
     try {
       const res = await axios.post('https://campusgo-production-3b90.up.railway.app/api/tickets/scan', { qr_code: qrInput });
       setScannedTickets(prev => [res.data, ...prev]);
-      setSnackbar({ open: true, message: '✅ Ticket validated successfully!', severity: 'success' });
+      setSnackbar({ open: true, message: 'Ticket validated successfully!', severity: 'success' });
       setQrInput('');
     } catch (err) {
-      setSnackbar({ open: true, message: err.response?.data?.error || '❌ Invalid or already used ticket', severity: 'error' });
+      setSnackbar({ open: true, message: err.response?.data?.error || 'Invalid or already used ticket', severity: 'error' });
       setQrInput('');
     }
   };
@@ -144,15 +120,7 @@ export default function OperatorDashboard() {
 
   return (
     <Box sx={{ minHeight: '100vh', background: '#f9f9f9' }}>
-      <AppBar position="static" sx={{ background: '#1F1F1F' }}>
-        <Toolbar>
-          <DirectionsBusIcon sx={{ mr: 1, color: '#2DBE60' }} />
-          <Typography variant="h6" fontWeight="bold" sx={{ flexGrow: 1 }}>Campus GO — Operator</Typography>
-          <Typography variant="body2" sx={{ mr: 2 }}>Welcome, {user?.full_name}</Typography>
-          <Button color="inherit" startIcon={<SettingsIcon />} onClick={() => window.location.href = '/settings'} sx={{ mr: 1 }}>Settings</Button>
-          <Button color="inherit" startIcon={<LogoutIcon />} onClick={handleLogout}>Logout</Button>
-        </Toolbar>
-      </AppBar>
+      <CampusGoHeader user={user} role="Operator" />
 
       <Box sx={{ p: 4 }}>
         {/* Stats */}
@@ -174,47 +142,31 @@ export default function OperatorDashboard() {
         {/* Trip Control */}
         <Card sx={{ borderRadius: 3, mb: 4 }}>
           <CardContent>
-            <Typography variant="h6" fontWeight="bold" sx={{ mb: 2 }}>🚌 Trip Control</Typography>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+              <DirectionsBusIcon sx={{ color: '#2DBE60' }} />
+              <Typography variant="h6" fontWeight="bold">Trip Control</Typography>
+            </Box>
             {!tripActive ? (
               <Box>
                 <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
                   Select your route and bus, then start your trip.
                 </Typography>
-
-                {/* Route Select */}
                 <FormControl fullWidth sx={{ mb: 2 }}>
                   <InputLabel>Select Route</InputLabel>
-                  <Select
-                    value={selectedRouteId}
-                    label="Select Route"
-                    onChange={e => setSelectedRouteId(e.target.value)}
-                  >
+                  <Select value={selectedRouteId} label="Select Route" onChange={e => setSelectedRouteId(e.target.value)}>
                     <MenuItem value="">-- Select your route --</MenuItem>
-                    {routes.map(r => (
-                      <MenuItem key={r.id} value={r.id}>{r.name}</MenuItem>
-                    ))}
+                    {routes.map(r => <MenuItem key={r.id} value={r.id}>{r.name}</MenuItem>)}
                   </Select>
                 </FormControl>
-
-                {/* Plate Select */}
                 <FormControl fullWidth sx={{ mb: 3 }}>
                   <InputLabel>Select Bus Plate</InputLabel>
-                  <Select
-                    value={selectedPlate}
-                    label="Select Bus Plate"
-                    onChange={e => setSelectedPlate(e.target.value)}
-                  >
+                  <Select value={selectedPlate} label="Select Bus Plate" onChange={e => setSelectedPlate(e.target.value)}>
                     <MenuItem value="">-- Select your bus --</MenuItem>
                     {companyPlates.length > 0 ? (
                       companyPlates.map(bus => {
                         const inUse = activePlates.includes(bus.plate_number) && bus.plate_number !== plateRef.current;
                         return (
-                          <MenuItem
-                            key={bus.id}
-                            value={bus.plate_number}
-                            disabled={inUse}
-                            sx={{ color: inUse ? '#aaa' : 'inherit' }}
-                          >
+                          <MenuItem key={bus.id} value={bus.plate_number} disabled={inUse} sx={{ color: inUse ? '#aaa' : 'inherit' }}>
                             {bus.plate_number} {inUse ? '(In Use)' : ''}
                           </MenuItem>
                         );
@@ -224,33 +176,27 @@ export default function OperatorDashboard() {
                     )}
                   </Select>
                 </FormControl>
-
-                <Button
-                  fullWidth
-                  variant="contained"
-                  onClick={startTrip}
+                <Button fullWidth variant="contained" onClick={startTrip}
                   disabled={!selectedRouteId || !selectedPlate}
-                  sx={{ py: 1.5, background: '#2DBE60', fontWeight: 'bold', '&:hover': { background: '#1F1F1F' } }}
-                >
-                  🟢 Start Trip
+                  startIcon={<PlayCircleIcon />}
+                  sx={{ py: 1.5, background: '#2DBE60', fontWeight: 'bold', '&:hover': { background: '#1F1F1F' } }}>
+                  Start Trip
                 </Button>
               </Box>
             ) : (
               <Box sx={{ textAlign: 'center' }}>
                 <Chip
-                  label={`● Active — ${plateRef.current}`}
+                  icon={<FiberManualRecordIcon style={{ fontSize: 12 }} />}
+                  label={`Active — ${plateRef.current}`}
                   sx={{ background: '#2DBE60', color: '#fff', fontWeight: 'bold', mb: 2, fontSize: 14 }}
                 />
                 <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
                   Bus {plateRef.current} is live — updating every 5 seconds.
                 </Typography>
-                <Button
-                  fullWidth
-                  variant="contained"
-                  onClick={stopTrip}
-                  sx={{ py: 1.5, background: '#f44336', fontWeight: 'bold', '&:hover': { background: '#1F1F1F' } }}
-                >
-                  🔴 Stop Trip
+                <Button fullWidth variant="contained" onClick={stopTrip}
+                  startIcon={<StopCircleIcon />}
+                  sx={{ py: 1.5, background: '#f44336', fontWeight: 'bold', '&:hover': { background: '#1F1F1F' } }}>
+                  Stop Trip
                 </Button>
               </Box>
             )}
@@ -269,18 +215,13 @@ export default function OperatorDashboard() {
             </Typography>
             <Box sx={{ display: 'flex', gap: 2 }}>
               <TextField
-                fullWidth
-                label="Scan or enter QR code"
-                value={qrInput}
+                fullWidth label="Scan or enter QR code" value={qrInput}
                 onChange={e => setQrInput(e.target.value)}
                 onKeyDown={e => e.key === 'Enter' && handleScan()}
                 placeholder="Point scanner at QR code or type code here..."
               />
-              <Button
-                variant="contained"
-                onClick={handleScan}
-                sx={{ px: 4, background: '#2DBE60', fontWeight: 'bold', whiteSpace: 'nowrap', '&:hover': { background: '#1F1F1F' } }}
-              >
+              <Button variant="contained" onClick={handleScan}
+                sx={{ px: 4, background: '#2DBE60', fontWeight: 'bold', whiteSpace: 'nowrap', '&:hover': { background: '#1F1F1F' } }}>
                 Validate
               </Button>
             </Box>
@@ -314,7 +255,7 @@ export default function OperatorDashboard() {
                       <TableCell>{ticket.route_name || '—'}</TableCell>
                       <TableCell>${parseFloat(ticket.fare).toFixed(2)}</TableCell>
                       <TableCell>
-                        <Chip label="Used" size="small"
+                        <Chip icon={<CheckCircleIcon style={{ fontSize: 14 }} />} label="Used" size="small"
                           sx={{ background: '#2DBE60', color: '#fff', fontWeight: 'bold' }} />
                       </TableCell>
                       <TableCell>{new Date(ticket.scanned_at).toLocaleTimeString()}</TableCell>

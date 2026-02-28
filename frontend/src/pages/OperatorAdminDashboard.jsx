@@ -7,9 +7,6 @@ import {
   DialogContent, DialogActions, IconButton, Snackbar, Tooltip,
   MenuItem, Select, FormControl, InputLabel, Avatar
 } from '@mui/material';
-import DirectionsBusIcon from '@mui/icons-material/DirectionsBus';
-import LogoutIcon from '@mui/icons-material/Logout';
-import SettingsIcon from '@mui/icons-material/Settings';
 import AddIcon from '@mui/icons-material/Add';
 import DeleteIcon from '@mui/icons-material/Delete';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
@@ -25,6 +22,7 @@ import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
 import CheckIcon from '@mui/icons-material/Check';
 import CloseIcon from '@mui/icons-material/Close';
 import ChatBubbleOutlineIcon from '@mui/icons-material/ChatBubbleOutline';
+import CampusGoHeader from './CampusGoHeader';
 
 export default function OperatorAdminDashboard() {
   const [tab, setTab] = useState(0);
@@ -218,15 +216,7 @@ export default function OperatorAdminDashboard() {
 
   return (
     <Box sx={{ minHeight: '100vh', background: '#f9f9f9' }}>
-      <AppBar position="static" sx={{ background: '#1F1F1F' }}>
-        <Toolbar>
-          <DirectionsBusIcon sx={{ mr: 1, color: '#2DBE60' }} />
-          <Typography variant="h6" fontWeight="bold" sx={{ flexGrow: 1 }}>Campus GO — Operator Admin</Typography>
-          <Typography variant="body2" sx={{ mr: 2 }}>Welcome, {user?.full_name}</Typography>
-          <Button color="inherit" startIcon={<SettingsIcon />} onClick={() => window.location.href = '/settings'} sx={{ mr: 1 }}>Settings</Button>
-          <Button color="inherit" startIcon={<LogoutIcon />} onClick={handleLogout}>Logout</Button>
-        </Toolbar>
-      </AppBar>
+      <CampusGoHeader user={user} role="Operator Admin" />
 
       <Box sx={{ borderBottom: 1, borderColor: 'divider', background: '#fff' }}>
         <Tabs value={tab} onChange={(e, v) => setTab(v)} variant="scrollable" scrollButtons="auto"

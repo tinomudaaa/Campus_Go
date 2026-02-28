@@ -13,20 +13,23 @@ import {
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import DirectionsBusIcon from '@mui/icons-material/DirectionsBus';
 import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
-import LogoutIcon from '@mui/icons-material/Logout';
 import AddIcon from '@mui/icons-material/Add';
 import RouteIcon from '@mui/icons-material/AltRoute';
 import FeedbackIcon from '@mui/icons-material/Feedback';
 import BarChartIcon from '@mui/icons-material/BarChart';
-import SettingsIcon from '@mui/icons-material/Settings';
 import LocationOnIcon from '@mui/icons-material/LocationOn';
 import BusinessIcon from '@mui/icons-material/Business';
 import SendIcon from '@mui/icons-material/Send';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import BlockIcon from '@mui/icons-material/Block';
 import HourglassEmptyIcon from '@mui/icons-material/HourglassEmpty';
+import TrendingUpIcon from '@mui/icons-material/TrendingUp';
+import AttachMoneyIcon from '@mui/icons-material/AttachMoney';
+import ConfirmationNumberIcon from '@mui/icons-material/ConfirmationNumber';
+import WarningAmberIcon from '@mui/icons-material/WarningAmber';
+import FiberManualRecordIcon from '@mui/icons-material/FiberManualRecord';
+import CampusGoHeader from './CampusGoHeader';
 
 delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({
@@ -127,12 +130,8 @@ export default function AdminDashboard() {
   };
 
   useEffect(() => {
-    fetchStudents();
-    fetchRoutes();
-    fetchFeedback();
-    fetchAnalytics();
-    fetchActiveBuses();
-    fetchCompanies();
+    fetchStudents(); fetchRoutes(); fetchFeedback();
+    fetchAnalytics(); fetchActiveBuses(); fetchCompanies();
     const interval = setInterval(fetchActiveBuses, 5000);
     return () => clearInterval(interval);
   }, []);
@@ -145,10 +144,8 @@ export default function AdminDashboard() {
         student_id: selectedStudent.id, amount: parseFloat(topupAmount)
       });
       setSnackbar({ open: true, message: `Topped up $${topupAmount} for ${selectedStudent.full_name}`, severity: 'success' });
-      setTopupDialogOpen(false);
-      setTopupAmount('');
-      fetchStudents();
-      fetchAnalytics();
+      setTopupDialogOpen(false); setTopupAmount('');
+      fetchStudents(); fetchAnalytics();
     } catch (err) {
       setSnackbar({ open: true, message: 'Top up failed.', severity: 'error' });
     }
@@ -183,15 +180,12 @@ export default function AdminDashboard() {
     setCreateCompanyLoading(true);
     try {
       const res = await axios.post('https://campusgo-production-3b90.up.railway.app/api/admin/companies', {
-        name: newCompany.name,
-        inviteEmail: newCompany.inviteEmail,
+        name: newCompany.name, inviteEmail: newCompany.inviteEmail,
       }, { headers: { 'x-user-id': user?.id } });
-
       setSnackbar({ open: true, message: `Company created! Invite sent to ${newCompany.inviteEmail}`, severity: 'success' });
       setCreateCompanyDialog(false);
       setNewCompany({ name: '', inviteEmail: '' });
       fetchCompanies();
-
       if (res.data.inviteToken) {
         const link = `${window.location.origin}/invite/${res.data.inviteToken}`;
         await navigator.clipboard.writeText(link).catch(() => {});
@@ -206,8 +200,7 @@ export default function AdminDashboard() {
   const handleCompanyStatus = async (companyId, status) => {
     try {
       await axios.put(`https://campusgo-production-3b90.up.railway.app/api/admin/companies/${companyId}/status`,
-        { status },
-        { headers: { 'x-user-id': user?.id } }
+        { status }, { headers: { 'x-user-id': user?.id } }
       );
       setSnackbar({ open: true, message: `Company ${status === 'active' ? 'approved' : 'suspended'}!`, severity: 'success' });
       fetchCompanies();
@@ -223,64 +216,30 @@ export default function AdminDashboard() {
     setTimeout(() => setInviteCopied(null), 2000);
   };
 
-  const handleLogout = () => {
-    localStorage.clear();
-    window.location.href = '/';
-  };
+  const handleLogout = () => { localStorage.clear(); window.location.href = '/'; };
 
   return (
     <Box sx={{ minHeight: '100vh', background: '#f9f9f9' }}>
-      <AppBar position="static" sx={{ background: '#1F1F1F' }}>
-        <Toolbar>
-          <DirectionsBusIcon sx={{ mr: 1, color: '#2DBE60' }} />
-          <Typography variant="h6" fontWeight="bold" sx={{ flexGrow: 1 }}>Campus GO — Platform Admin</Typography>
-          <Typography variant="body2" sx={{ mr: 2 }}>Welcome, {user?.full_name}</Typography>
-          <Button color="inherit" startIcon={<SettingsIcon />} onClick={() => window.location.href = '/settings'} sx={{ mr: 1 }}>Settings</Button>
-          <Button color="inherit" startIcon={<LogoutIcon />} onClick={handleLogout}>Logout</Button>
-        </Toolbar>
-      </AppBar>
+      <CampusGoHeader user={user} role="Platform Admin" />
 
       <Box sx={{ p: 4 }}>
         {/* Stats */}
         <Box sx={{ display: 'flex', gap: 3, mb: 4, flexWrap: 'wrap' }}>
-          <Card sx={{ flex: 1, borderRadius: 3, borderLeft: '4px solid #2DBE60' }}>
-            <CardContent>
-              <Typography color="text.secondary" variant="body2">Total Students</Typography>
-              <Typography variant="h4" fontWeight="bold">{students.length}</Typography>
-            </CardContent>
-          </Card>
-          <Card sx={{ flex: 1, borderRadius: 3, borderLeft: '4px solid #2DBE60' }}>
-            <CardContent>
-              <Typography color="text.secondary" variant="body2">Companies</Typography>
-              <Typography variant="h4" fontWeight="bold">{companies.length}</Typography>
-            </CardContent>
-          </Card>
-          <Card sx={{ flex: 1, borderRadius: 3, borderLeft: '4px solid #2DBE60' }}>
-            <CardContent>
-              <Typography color="text.secondary" variant="body2">Total Routes</Typography>
-              <Typography variant="h4" fontWeight="bold">{routes.length}</Typography>
-            </CardContent>
-          </Card>
-          <Card sx={{ flex: 1, borderRadius: 3, borderLeft: '4px solid #2DBE60' }}>
-            <CardContent>
-              <Typography color="text.secondary" variant="body2">Total Tickets Sold</Typography>
-              <Typography variant="h4" fontWeight="bold" color="#2DBE60">{analytics?.totalTickets || 0}</Typography>
-            </CardContent>
-          </Card>
-          <Card sx={{ flex: 1, borderRadius: 3, borderLeft: '4px solid #2DBE60' }}>
-            <CardContent>
-              <Typography color="text.secondary" variant="body2">Total Revenue</Typography>
-              <Typography variant="h4" fontWeight="bold" color="#2DBE60">${parseFloat(analytics?.totalRevenue || 0).toFixed(2)}</Typography>
-            </CardContent>
-          </Card>
-          <Card sx={{ flex: 1, borderRadius: 3, borderLeft: '4px solid #2DBE60' }}>
-            <CardContent>
-              <Typography color="text.secondary" variant="body2">Active Buses</Typography>
-              <Typography variant="h4" fontWeight="bold" color={activeBuses.length > 0 ? '#2DBE60' : '#ccc'}>
-                {activeBuses.length}
-              </Typography>
-            </CardContent>
-          </Card>
+          {[
+            { label: 'Total Students', value: students.length },
+            { label: 'Companies', value: companies.length },
+            { label: 'Total Routes', value: routes.length },
+            { label: 'Total Tickets Sold', value: analytics?.totalTickets || 0, color: '#2DBE60' },
+            { label: 'Total Revenue', value: `$${parseFloat(analytics?.totalRevenue || 0).toFixed(2)}`, color: '#2DBE60' },
+            { label: 'Active Buses', value: activeBuses.length, color: activeBuses.length > 0 ? '#2DBE60' : '#ccc' },
+          ].map((s, i) => (
+            <Card key={i} sx={{ flex: 1, borderRadius: 3, borderLeft: '4px solid #2DBE60' }}>
+              <CardContent>
+                <Typography color="text.secondary" variant="body2">{s.label}</Typography>
+                <Typography variant="h4" fontWeight="bold" color={s.color || '#1F1F1F'}>{s.value}</Typography>
+              </CardContent>
+            </Card>
+          ))}
         </Box>
 
         {/* Tabs */}
@@ -305,9 +264,7 @@ export default function AdminDashboard() {
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
                   <Box>
                     <Typography variant="h6" fontWeight="bold">Operator Companies</Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      Create companies and send invites to operator admins
-                    </Typography>
+                    <Typography variant="body2" color="text.secondary">Create companies and send invites to operator admins</Typography>
                   </Box>
                   <Button variant="contained" startIcon={<AddIcon />}
                     sx={{ background: '#2DBE60', '&:hover': { background: '#1F1F1F' } }}
@@ -315,7 +272,6 @@ export default function AdminDashboard() {
                     Create Company
                   </Button>
                 </Box>
-
                 <TableContainer component={Paper} elevation={0}>
                   <Table>
                     <TableHead>
@@ -340,16 +296,13 @@ export default function AdminDashboard() {
                               </Box>
                             </TableCell>
                             <TableCell>
-                              <Chip
-                                label={s.label}
-                                size="small"
+                              <Chip label={s.label} size="small"
                                 icon={
                                   company.status === 'active' ? <CheckCircleIcon style={{ fontSize: 14 }} /> :
                                   company.status === 'suspended' ? <BlockIcon style={{ fontSize: 14 }} /> :
                                   <HourglassEmptyIcon style={{ fontSize: 14 }} />
                                 }
-                                sx={{ background: s.bg, color: s.color, fontWeight: 'bold' }}
-                              />
+                                sx={{ background: s.bg, color: s.color, fontWeight: 'bold' }} />
                             </TableCell>
                             <TableCell>
                               {company.admin_name ? (
@@ -363,22 +316,12 @@ export default function AdminDashboard() {
                             </TableCell>
                             <TableCell>
                               {company.invite_token && company.invite_status === 'pending' ? (
-                                <Button
-                                  size="small"
-                                  variant="outlined"
-                                  startIcon={<SendIcon />}
+                                <Button size="small" variant="outlined" startIcon={<SendIcon />}
                                   onClick={() => handleCopyInviteLink(company.invite_token)}
-                                  sx={{
-                                    borderColor: inviteCopied === company.invite_token ? '#2DBE60' : '#1F1F1F',
-                                    color: inviteCopied === company.invite_token ? '#2DBE60' : '#1F1F1F',
-                                    fontSize: 12
-                                  }}
-                                >
+                                  sx={{ borderColor: inviteCopied === company.invite_token ? '#2DBE60' : '#1F1F1F', color: inviteCopied === company.invite_token ? '#2DBE60' : '#1F1F1F', fontSize: 12 }}>
                                   {inviteCopied === company.invite_token ? 'Copied!' : 'Copy Invite Link'}
                                 </Button>
-                              ) : (
-                                <Typography fontSize={12} color="text.secondary">—</Typography>
-                              )}
+                              ) : <Typography fontSize={12} color="text.secondary">—</Typography>}
                             </TableCell>
                             <TableCell>
                               <Typography fontSize={12} color="text.secondary">
@@ -389,22 +332,18 @@ export default function AdminDashboard() {
                               <Box sx={{ display: 'flex', gap: 1 }}>
                                 {company.status !== 'active' && (
                                   <Tooltip title="Approve Company">
-                                    <Button size="small" variant="outlined"
-                                      startIcon={<CheckCircleIcon />}
+                                    <Button size="small" variant="outlined" startIcon={<CheckCircleIcon />}
                                       onClick={() => handleCompanyStatus(company.id, 'active')}
-                                      sx={{ borderColor: '#2DBE60', color: '#2DBE60', fontSize: 11,
-                                        '&:hover': { background: '#2DBE60', color: '#fff' } }}>
+                                      sx={{ borderColor: '#2DBE60', color: '#2DBE60', fontSize: 11, '&:hover': { background: '#2DBE60', color: '#fff' } }}>
                                       Approve
                                     </Button>
                                   </Tooltip>
                                 )}
                                 {company.status !== 'suspended' && (
                                   <Tooltip title="Suspend Company">
-                                    <Button size="small" variant="outlined"
-                                      startIcon={<BlockIcon />}
+                                    <Button size="small" variant="outlined" startIcon={<BlockIcon />}
                                       onClick={() => handleCompanyStatus(company.id, 'suspended')}
-                                      sx={{ borderColor: '#f44336', color: '#f44336', fontSize: 11,
-                                        '&:hover': { background: '#f44336', color: '#fff' } }}>
+                                      sx={{ borderColor: '#f44336', color: '#f44336', fontSize: 11, '&:hover': { background: '#f44336', color: '#fff' } }}>
                                       Suspend
                                     </Button>
                                   </Tooltip>
@@ -550,13 +489,15 @@ export default function AdminDashboard() {
             {/* Analytics Tab */}
             {tab === 4 && (
               <Box>
-                <Typography variant="h6" fontWeight="bold" sx={{ mb: 2 }}>🚌 Tickets by Route</Typography>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+                  <DirectionsBusIcon sx={{ color: '#2DBE60' }} />
+                  <Typography variant="h6" fontWeight="bold">Tickets by Route</Typography>
+                </Box>
                 {analytics?.ticketsByRoute?.length > 0 ? (
                   <ResponsiveContainer width="100%" height={300}>
                     <BarChart data={analytics.ticketsByRoute}>
                       <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="name" />
-                      <YAxis />
+                      <XAxis dataKey="name" /><YAxis />
                       <RechartsTooltip />
                       <Bar dataKey="ticket_count" fill="#2DBE60" name="Tickets Sold" radius={[4, 4, 0, 0]} />
                     </BarChart>
@@ -564,13 +505,16 @@ export default function AdminDashboard() {
                 ) : (
                   <Typography color="text.secondary" sx={{ textAlign: 'center', py: 4 }}>No ticket data yet</Typography>
                 )}
-                <Typography variant="h6" fontWeight="bold" sx={{ mt: 4, mb: 2 }}>📈 Tickets Over Time</Typography>
+
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 4, mb: 2 }}>
+                  <TrendingUpIcon sx={{ color: '#2DBE60' }} />
+                  <Typography variant="h6" fontWeight="bold">Tickets Over Time</Typography>
+                </Box>
                 {analytics?.ticketsByDay?.length > 0 ? (
                   <ResponsiveContainer width="100%" height={300}>
                     <LineChart data={analytics.ticketsByDay}>
                       <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="date" />
-                      <YAxis />
+                      <XAxis dataKey="date" /><YAxis />
                       <RechartsTooltip />
                       <Line type="monotone" dataKey="count" stroke="#2DBE60" strokeWidth={3} dot={{ fill: '#2DBE60' }} name="Tickets" />
                     </LineChart>
@@ -578,13 +522,16 @@ export default function AdminDashboard() {
                 ) : (
                   <Typography color="text.secondary" sx={{ textAlign: 'center', py: 4 }}>No data yet</Typography>
                 )}
-                <Typography variant="h6" fontWeight="bold" sx={{ mt: 4, mb: 2 }}>💰 Revenue by Route</Typography>
+
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 4, mb: 2 }}>
+                  <AttachMoneyIcon sx={{ color: '#2DBE60' }} />
+                  <Typography variant="h6" fontWeight="bold">Revenue by Route</Typography>
+                </Box>
                 {analytics?.ticketsByRoute?.length > 0 ? (
                   <ResponsiveContainer width="100%" height={300}>
                     <BarChart data={analytics.ticketsByRoute}>
                       <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="name" />
-                      <YAxis />
+                      <XAxis dataKey="name" /><YAxis />
                       <RechartsTooltip />
                       <Bar dataKey="revenue" fill="#1F1F1F" name="Revenue ($)" radius={[4, 4, 0, 0]} />
                     </BarChart>
@@ -599,7 +546,10 @@ export default function AdminDashboard() {
             {tab === 5 && (
               <Box>
                 <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
-                  <Typography variant="h6" fontWeight="bold">🛡️ Live Fleet Monitor</Typography>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <LocationOnIcon sx={{ color: '#2DBE60' }} />
+                    <Typography variant="h6" fontWeight="bold">Live Fleet Monitor</Typography>
+                  </Box>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                     {lastFleetUpdate && (
                       <Typography variant="caption" color="text.secondary">
@@ -629,11 +579,11 @@ export default function AdminDashboard() {
                         icon={isStale ? warningIcon : busIcon}>
                         <Popup>
                           <Box sx={{ p: 0.5, minWidth: 190 }}>
-                            <Typography fontWeight="bold" fontSize={14} color="#2DBE60">🚌 {bus.route_name}</Typography>
-                            <Typography fontSize={13} fontWeight="bold">🚗 {bus.number_plate || 'No plate'}</Typography>
-                            <Typography fontSize={12} color="#555">📍 {parseFloat(bus.latitude).toFixed(5)}, {parseFloat(bus.longitude).toFixed(5)}</Typography>
+                            <Typography fontWeight="bold" fontSize={14} color="#2DBE60">{bus.route_name}</Typography>
+                            <Typography fontSize={13} fontWeight="bold">{bus.number_plate || 'No plate'}</Typography>
+                            <Typography fontSize={12} color="#555">{parseFloat(bus.latitude).toFixed(5)}, {parseFloat(bus.longitude).toFixed(5)}</Typography>
                             <Typography fontSize={12} fontWeight="bold" color={isStale ? '#f44336' : '#2DBE60'} sx={{ mt: 0.5 }}>
-                              {isStale ? `⚠️ Last seen ${minsAgo} min ago` : '✅ Live — updating'}
+                              {isStale ? `Last seen ${minsAgo} min ago` : 'Live — updating'}
                             </Typography>
                           </Box>
                         </Popup>
@@ -653,12 +603,18 @@ export default function AdminDashboard() {
                           <CardContent sx={{ py: 1.5, '&:last-child': { pb: 1.5 } }}>
                             <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                               <Box>
-                                <Typography fontWeight="bold" fontSize={15}>🚌 {bus.route_name}</Typography>
-                                <Typography fontSize={13} fontWeight="bold" color="#1F1F1F">🚗 {bus.number_plate || 'No plate'}</Typography>
-                                <Typography fontSize={12} color="text.secondary">📍 {parseFloat(bus.latitude).toFixed(5)}, {parseFloat(bus.longitude).toFixed(5)}</Typography>
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                  <DirectionsBusIcon sx={{ fontSize: 16, color: '#2DBE60' }} />
+                                  <Typography fontWeight="bold" fontSize={15}>{bus.route_name}</Typography>
+                                </Box>
+                                <Typography fontSize={13} fontWeight="bold" color="#1F1F1F">{bus.number_plate || 'No plate'}</Typography>
+                                <Typography fontSize={12} color="text.secondary">{parseFloat(bus.latitude).toFixed(5)}, {parseFloat(bus.longitude).toFixed(5)}</Typography>
                               </Box>
                               <Box sx={{ textAlign: 'right' }}>
-                                <Chip label={isStale ? `⚠️ ${minsAgo}m ago` : '● Live'} size="small"
+                                <Chip
+                                  icon={isStale ? <WarningAmberIcon style={{ fontSize: 14 }} /> : <FiberManualRecordIcon style={{ fontSize: 10 }} />}
+                                  label={isStale ? `${minsAgo}m ago` : 'Live'}
+                                  size="small"
                                   sx={{ background: isStale ? '#ff9800' : '#2DBE60', color: '#fff', fontWeight: 'bold', mb: 0.5 }} />
                                 <Typography fontSize={11} color="text.secondary" display="block">
                                   {new Date(bus.updated_at).toLocaleTimeString()}
@@ -672,7 +628,7 @@ export default function AdminDashboard() {
                   </Box>
                 ) : (
                   <Box sx={{ textAlign: 'center', py: 6, background: '#f9f9f9', borderRadius: 3, border: '1px dashed #ccc' }}>
-                    <Typography fontSize={40}>🚌</Typography>
+                    <DirectionsBusIcon sx={{ fontSize: 48, color: '#ccc' }} />
                     <Typography color="text.secondary" fontWeight="bold" mt={1}>No buses currently on the road</Typography>
                     <Typography color="text.secondary" fontSize={13}>When operators start trips, they'll appear here in real time</Typography>
                   </Box>
@@ -685,22 +641,22 @@ export default function AdminDashboard() {
 
       {/* Create Company Dialog */}
       <Dialog open={createCompanyDialog} onClose={() => setCreateCompanyDialog(false)} maxWidth="xs" fullWidth>
-        <DialogTitle fontWeight="bold">🏢 Create Operator Company</DialogTitle>
+        <DialogTitle fontWeight="bold">
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <BusinessIcon sx={{ color: '#2DBE60' }} /> Create Operator Company
+          </Box>
+        </DialogTitle>
         <DialogContent>
           <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
             Create a company and send an invite to the operator admin. They'll receive a link to set up their account.
           </Typography>
-          <TextField
-            fullWidth label="Company Name" value={newCompany.name}
+          <TextField fullWidth label="Company Name" value={newCompany.name}
             onChange={e => setNewCompany({ ...newCompany, name: e.target.value })}
-            sx={{ mb: 2, mt: 1 }} autoFocus placeholder="e.g. City Transit Ltd"
-          />
-          <TextField
-            fullWidth label="Operator Admin Email" type="email" value={newCompany.inviteEmail}
+            sx={{ mb: 2, mt: 1 }} autoFocus placeholder="e.g. City Transit Ltd" />
+          <TextField fullWidth label="Operator Admin Email" type="email" value={newCompany.inviteEmail}
             onChange={e => setNewCompany({ ...newCompany, inviteEmail: e.target.value })}
             placeholder="e.g. admin@citytransit.com"
-            helperText="An invite link will be generated for this email"
-          />
+            helperText="An invite link will be generated for this email" />
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setCreateCompanyDialog(false)}>Cancel</Button>
@@ -714,7 +670,11 @@ export default function AdminDashboard() {
 
       {/* Top Up Dialog */}
       <Dialog open={topupDialogOpen} onClose={() => setTopupDialogOpen(false)} maxWidth="xs" fullWidth>
-        <DialogTitle fontWeight="bold">Top Up Wallet</DialogTitle>
+        <DialogTitle fontWeight="bold">
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <AccountBalanceWalletIcon sx={{ color: '#2DBE60' }} /> Top Up Wallet
+          </Box>
+        </DialogTitle>
         <DialogContent>
           <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
             Student: <strong>{selectedStudent?.full_name}</strong><br />
@@ -733,7 +693,11 @@ export default function AdminDashboard() {
 
       {/* Add Route Dialog */}
       <Dialog open={routeDialogOpen} onClose={() => setRouteDialogOpen(false)} maxWidth="xs" fullWidth>
-        <DialogTitle fontWeight="bold">Add New Route</DialogTitle>
+        <DialogTitle fontWeight="bold">
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <RouteIcon sx={{ color: '#2DBE60' }} /> Add New Route
+          </Box>
+        </DialogTitle>
         <DialogContent>
           <TextField fullWidth label="Route Name" value={newRoute.name}
             onChange={e => setNewRoute({ ...newRoute, name: e.target.value })} sx={{ mb: 2, mt: 1 }} />

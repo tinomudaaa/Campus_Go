@@ -7,142 +7,11 @@ import {
   Alert, Snackbar, TextField
 } from '@mui/material';
 import ShoppingCartIcon from '@mui/icons-material/ShoppingCart';
-import DirectionsBusIcon from '@mui/icons-material/DirectionsBus';
-import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
 import ConfirmationNumberIcon from '@mui/icons-material/ConfirmationNumber';
-import LogoutIcon from '@mui/icons-material/Logout';
-import SettingsIcon from '@mui/icons-material/Settings';
 import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
 import BusMap from './BusMap';
+import CampusGoHeader from './CampusGoHeader';
 
-const mobileStyles = `
-  @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap');
-  * { font-family: 'DM Sans', sans-serif; }
-
-  .cgo-header {
-    background: linear-gradient(135deg, #1a1a1a 0%, #1F1F1F 60%, #2a2a2a 100%);
-    position: sticky;
-    top: 0;
-    z-index: 100;
-    box-shadow: 0 2px 12px rgba(0,0,0,0.3);
-  }
-
-  .cgo-header-top {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 12px 16px 8px;
-  }
-
-  .cgo-logo {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
-
-  .cgo-logo-icon {
-    background: #2DBE60;
-    border-radius: 10px;
-    width: 36px;
-    height: 36px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-
-  .cgo-logo-text {
-    font-size: 20px;
-    font-weight: 700;
-    color: white;
-    letter-spacing: -0.3px;
-  }
-
-  .cgo-logo-text span { color: #2DBE60; }
-
-  .cgo-header-actions {
-    display: flex;
-    gap: 8px;
-    align-items: center;
-  }
-
-  .cgo-icon-btn {
-    background: rgba(255,255,255,0.1);
-    border: none;
-    border-radius: 10px;
-    width: 38px;
-    height: 38px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    color: white;
-    font-size: 17px;
-    transition: background 0.2s;
-  }
-
-  .cgo-icon-btn:active { background: rgba(255,255,255,0.25); }
-
-  .cgo-header-welcome {
-    padding: 4px 16px 14px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-  }
-
-  .cgo-welcome-text {
-    color: rgba(255,255,255,0.6);
-    font-size: 12px;
-  }
-
-  .cgo-welcome-name {
-    color: white;
-    font-size: 16px;
-    font-weight: 600;
-    margin-top: 1px;
-  }
-
-  .cgo-balance-pill {
-    background: rgba(45,190,96,0.2);
-    border: 1px solid rgba(45,190,96,0.4);
-    border-radius: 14px;
-    padding: 6px 14px;
-    text-align: right;
-  }
-
-  .cgo-balance-label {
-    color: rgba(255,255,255,0.6);
-    font-size: 10px;
-    font-weight: 500;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-  }
-
-  .cgo-balance-amount {
-    color: #2DBE60;
-    font-size: 18px;
-    font-weight: 700;
-    line-height: 1.2;
-  }
-
-  .cgo-stats {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 10px;
-    padding: 16px 16px 4px;
-  }
-
-  .cgo-stat-card {
-    background: white;
-    border-radius: 14px;
-    padding: 12px 8px;
-    text-align: center;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
-  }
-
-  .cgo-stat-icon { font-size: 22px; margin-bottom: 4px; line-height: 1; }
-  .cgo-stat-value { font-size: 22px; font-weight: 700; color: #2DBE60; line-height: 1.1; }
-  .cgo-stat-label { font-size: 10px; color: #999; font-weight: 500; margin-top: 2px; text-transform: uppercase; letter-spacing: 0.3px; }
-`;
 
 export default function StudentDashboard() {
   const [tickets, setTickets] = useState([]);
@@ -212,39 +81,7 @@ export default function StudentDashboard() {
 
   return (
     <Box sx={{ minHeight: '100vh', background: '#f5f7f5' }}>
-      <style>{mobileStyles}</style>
-
-      {/* ── NEW MOBILE HEADER ── */}
-      <div className="cgo-header">
-        <div className="cgo-header-top">
-          <div className="cgo-logo">
-            <div className="cgo-logo-icon">
-              <DirectionsBusIcon sx={{ color: 'white', fontSize: 22 }} />
-            </div>
-            <div className="cgo-logo-text">Campus<span>GO</span></div>
-          </div>
-          <div className="cgo-header-actions">
-            <button className="cgo-icon-btn" onClick={() => window.location.href = '/settings'} title="Settings">
-              <SettingsIcon sx={{ fontSize: 20 }} />
-            </button>
-            <button className="cgo-icon-btn" onClick={handleLogout} title="Logout">
-              <LogoutIcon sx={{ fontSize: 20 }} />
-            </button>
-          </div>
-        </div>
-        <div className="cgo-header-welcome">
-          <div>
-            <div className="cgo-welcome-text">Welcome back,</div>
-            <div className="cgo-welcome-name">{user?.full_name}</div>
-          </div>
-          <div className="cgo-balance-pill">
-            <div className="cgo-balance-label" style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-              <AccountBalanceWalletIcon sx={{ fontSize: 11, color: 'rgba(255,255,255,0.6)' }} /> Wallet
-            </div>
-            <div className="cgo-balance-amount">${parseFloat(user?.balance || 0).toFixed(2)}</div>
-          </div>
-        </div>
-      </div>
+      <CampusGoHeader user={user} role="Student" showBalance={true} />
 
       {/* ── STATS ROW ── */}
       <div className="cgo-stats">
