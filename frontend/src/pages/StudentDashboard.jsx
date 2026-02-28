@@ -14,6 +14,27 @@ import BusMap from './BusMap';
 import CampusGoHeader from './CampusGoHeader';
 
 
+
+const statStyles = `
+  .cgo-stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    padding: 16px 16px 4px;
+    background: #f5f7f5;
+  }
+  .cgo-stat-card {
+    background: white;
+    border-radius: 14px;
+    padding: 12px 8px;
+    text-align: center;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  }
+  .cgo-stat-icon { font-size: 22px; margin-bottom: 4px; line-height: 1; }
+  .cgo-stat-value { font-size: 22px; font-weight: 700; color: #2DBE60; line-height: 1.1; }
+  .cgo-stat-label { font-size: 10px; color: #999; font-weight: 500; margin-top: 2px; text-transform: uppercase; letter-spacing: 0.3px; }
+`;
+
 export default function StudentDashboard() {
   const [tickets, setTickets] = useState([]);
   const [routes, setRoutes] = useState([]);
@@ -83,6 +104,7 @@ export default function StudentDashboard() {
   return (
     <Box sx={{ minHeight: '100vh', background: '#f5f7f5' }}>
       <CampusGoHeader user={user} role="Student" showBalance={true} />
+      <style>{statStyles}</style>
 
       {/* ── STATS ROW ── */}
       <div className="cgo-stats">
