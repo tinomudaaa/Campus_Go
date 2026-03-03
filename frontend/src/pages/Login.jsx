@@ -8,10 +8,6 @@ const borderAnimation = `
     from { stroke-dashoffset: 1200; }
     to   { stroke-dashoffset: 0; }
   }
-  @keyframes counter {
-    from { stroke-dashoffset: 0; }
-    to   { stroke-dashoffset: 1200; }
-  }
 
   .login-outer {
     position: relative;
@@ -30,26 +26,18 @@ const borderAnimation = `
     overflow: visible;
   }
 
-  /* Clockwise line */
-  .trace-cw {
+  .trace-line {
     fill: none;
     stroke: #2DBE60;
     stroke-width: 3;
     stroke-linecap: round;
-    stroke-dasharray: 120 1080;
     animation: clockwise 2.4s linear infinite;
     filter: drop-shadow(0 0 6px rgba(45,190,96,0.9));
   }
 
-  /* Counter-clockwise line */
-  .trace-ccw {
-    fill: none;
-    stroke: #2DBE60;
-    stroke-width: 3;
-    stroke-linecap: round;
-    stroke-dasharray: 120 1080;
-    animation: counter 2.4s linear infinite;
-    filter: drop-shadow(0 0 6px rgba(45,190,96,0.9));
+  /* Second line starts exactly halfway around (600 offset) */
+  .trace-line-2 {
+    animation-delay: -1.2s;
   }
 
   .login-card-inner {
@@ -60,13 +48,13 @@ const borderAnimation = `
   }
 `;
 
-// Rounded rect SVG path — 400x(dynamic) with r=20
-// We use a fixed height approx and let SVG scale
-function RoundedRectPath({ className }) {
+function BorderSVG() {
   const w = 406;
   const h = 536;
   const r = 22;
-  const perimeter = 2 * (w - 2 * r) + 2 * (h - 2 * r) + 2 * Math.PI * r;
+  const perimeter = Math.round(2 * (w - 2 * r) + 2 * (h - 2 * r) + 2 * Math.PI * r);
+  const lineLen = 100;
+  const gap = perimeter - lineLen;
 
   const d = `
     M ${r} 0
@@ -87,12 +75,24 @@ function RoundedRectPath({ className }) {
       viewBox={`0 0 ${w} ${h}`}
       preserveAspectRatio="none"
     >
-      {/* Faint full border so you can see the shape */}
-      <path d={d} fill="none" stroke="rgba(45,190,96,0.12)" strokeWidth="1.5" />
-      {/* Clockwise chaser */}
-      <path d={d} className="trace-cw" strokeDasharray={`120 ${Math.round(perimeter - 120)}`} />
-      {/* Counter-clockwise chaser */}
-      <path d={d} className="trace-ccw" strokeDasharray={`120 ${Math.round(perimeter - 120)}`} />
+      {/* Faint full border outline */}
+      <path d={d} fill="none" stroke="rgba(45,190,96,0.15)" strokeWidth="1.5" />
+
+      {/* Line 1 */}
+      <path
+        d={d}
+        className="trace-line"
+        strokeDasharray={`${lineLen} ${gap}`}
+        strokeDashoffset={perimeter}
+      />
+
+      {/* Line 2 — starts halfway around */}
+      <path
+        d={d}
+        className="trace-line trace-line-2"
+        strokeDasharray={`${lineLen} ${gap}`}
+        strokeDashoffset={perimeter}
+      />
     </svg>
   );
 }
@@ -149,8 +149,7 @@ export default function Login() {
       }} />
 
       <div className="login-outer">
-        {/* SVG border lines */}
-        <RoundedRectPath />
+        <BorderSVG />
 
         <div className="login-card-inner">
           <Card sx={{
