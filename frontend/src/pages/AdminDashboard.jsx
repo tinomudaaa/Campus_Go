@@ -29,6 +29,7 @@ import AttachMoneyIcon from '@mui/icons-material/AttachMoney';
 import ConfirmationNumberIcon from '@mui/icons-material/ConfirmationNumber';
 import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 import FiberManualRecordIcon from '@mui/icons-material/FiberManualRecord';
+import DirectionsBusIcon from '@mui/icons-material/DirectionsBus';
 import CampusGoHeader from './CampusGoHeader';
 
 delete L.Icon.Default.prototype._getIconUrl;

@@ -175,7 +175,7 @@ export default function BusMap() {
     <Box>
       {/* Header */}
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
-        <Typography variant="h6" fontWeight="bold">🗺️ Live Bus Tracking</Typography>
+        <Typography variant="h6" fontWeight="bold">Live Bus Tracking</Typography>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
           {lastUpdated && (
             <Typography variant="caption" color="text.secondary">
