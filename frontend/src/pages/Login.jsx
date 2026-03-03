@@ -1,11 +1,11 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import axios from 'axios';
 import { Box, Card, CardContent, TextField, Button, Typography, Alert } from '@mui/material';
 import DirectionsBusIcon from '@mui/icons-material/DirectionsBus';
 
 const borderAnimation = `
   @keyframes clockwise {
-    from { stroke-dashoffset: 1200; }
+    from { stroke-dashoffset: var(--perimeter); }
     to   { stroke-dashoffset: 0; }
   }
 
@@ -31,11 +31,10 @@ const borderAnimation = `
     stroke: #2DBE60;
     stroke-width: 3;
     stroke-linecap: round;
-    animation: clockwise 2.4s linear infinite;
     filter: drop-shadow(0 0 6px rgba(45,190,96,0.9));
+    animation: clockwise 2.4s linear infinite;
   }
 
-  /* Second line starts exactly halfway around (600 offset) */
   .trace-line-2 {
     animation-delay: -1.2s;
   }
@@ -48,9 +47,27 @@ const borderAnimation = `
   }
 `;
 
-function BorderSVG() {
-  const w = 406;
-  const h = 536;
+export default function Login() {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+  const [svgDims, setSvgDims] = useState({ w: 406, h: 600 });
+  const cardRef = useRef(null);
+
+  // Measure the actual rendered card height
+  useEffect(() => {
+    if (!cardRef.current) return;
+    const measure = () => {
+      const rect = cardRef.current.getBoundingClientRect();
+      setSvgDims({ w: rect.width + 6, h: rect.height + 6 });
+    };
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(cardRef.current);
+    return () => ro.disconnect();
+  }, []);
+
+  const { w, h } = svgDims;
   const r = 22;
   const perimeter = Math.round(2 * (w - 2 * r) + 2 * (h - 2 * r) + 2 * Math.PI * r);
   const lineLen = 100;
@@ -68,39 +85,6 @@ function BorderSVG() {
     Q 0 0 ${r} 0
     Z
   `;
-
-  return (
-    <svg
-      className="login-border-svg"
-      viewBox={`0 0 ${w} ${h}`}
-      preserveAspectRatio="none"
-    >
-      {/* Faint full border outline */}
-      <path d={d} fill="none" stroke="rgba(45,190,96,0.15)" strokeWidth="1.5" />
-
-      {/* Line 1 */}
-      <path
-        d={d}
-        className="trace-line"
-        strokeDasharray={`${lineLen} ${gap}`}
-        strokeDashoffset={perimeter}
-      />
-
-      {/* Line 2 — starts halfway around */}
-      <path
-        d={d}
-        className="trace-line trace-line-2"
-        strokeDasharray={`${lineLen} ${gap}`}
-        strokeDashoffset={perimeter}
-      />
-    </svg>
-  );
-}
-
-export default function Login() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -148,8 +132,33 @@ export default function Login() {
         pointerEvents: 'none',
       }} />
 
-      <div className="login-outer">
-        <BorderSVG />
+      <div className="login-outer" ref={cardRef}>
+        {/* Dynamic SVG border */}
+        <svg
+          className="login-border-svg"
+          viewBox={`0 0 ${w} ${h}`}
+          preserveAspectRatio="none"
+          style={{ '--perimeter': perimeter }}
+        >
+          {/* Faint full outline */}
+          <path d={d} fill="none" stroke="rgba(45,190,96,0.15)" strokeWidth="1.5" />
+
+          {/* Line 1 */}
+          <path
+            d={d}
+            className="trace-line"
+            strokeDasharray={`${lineLen} ${gap}`}
+            strokeDashoffset={perimeter}
+          />
+
+          {/* Line 2 — offset by half the perimeter so it's always opposite */}
+          <path
+            d={d}
+            className="trace-line trace-line-2"
+            strokeDasharray={`${lineLen} ${gap}`}
+            strokeDashoffset={perimeter}
+          />
+        </svg>
 
         <div className="login-card-inner">
           <Card sx={{
