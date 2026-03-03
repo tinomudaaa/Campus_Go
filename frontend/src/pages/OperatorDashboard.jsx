@@ -12,6 +12,7 @@ import StopCircleIcon from '@mui/icons-material/StopCircle';
 import PlayCircleIcon from '@mui/icons-material/PlayCircle';
 import TextField from '@mui/material/TextField';
 import CampusGoHeader from './CampusGoHeader';
+import DirectionsBusIcon from '@mui/icons-material/DirectionsBus';
 
 export default function OperatorDashboard() {
   const [qrInput, setQrInput] = useState('');
