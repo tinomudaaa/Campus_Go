@@ -45,6 +45,7 @@ export default function StudentDashboard() {
   const [activeTicket, setActiveTicket] = useState(null);
   const [feedbackRoute, setFeedbackRoute] = useState('');
   const [feedbackMessage, setFeedbackMessage] = useState('');
+  const [buses, setBuses] = useState([]);
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
 
   const fetchData = async () => {
@@ -52,6 +53,11 @@ export default function StudentDashboard() {
       const routesRes = await axios.get('https://campusgo-production-3b90.up.railway.app/api/routes');
       setRoutes(routesRes.data);
     } catch (err) { console.error('Routes error:', err); }
+
+    try {
+      const busesRes = await axios.get('https://campusgo-production-3b90.up.railway.app/api/buses');
+      setBuses(busesRes.data);
+    } catch (err) { console.error('Buses error:', err); }
 
     try {
       const ticketsRes = await axios.get(`https://campusgo-production-3b90.up.railway.app/api/tickets/${user.id}`);
@@ -120,7 +126,7 @@ export default function StudentDashboard() {
         </div>
         <div className="cgo-stat-card">
           <div className="cgo-stat-icon"><CheckCircleOutlineIcon sx={{ color: '#2DBE60', fontSize: 26 }} /></div>
-          <div className="cgo-stat-value">{tickets.filter(t => t.status === 'active').length}</div>
+          <div className="cgo-stat-value">{buses.filter(b => b.status === 'active').length}</div>
           <div className="cgo-stat-label">Active</div>
         </div>
       </div>
