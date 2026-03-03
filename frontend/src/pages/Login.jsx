@@ -32,7 +32,7 @@ const borderAnimation = `
     stroke-width: 3;
     stroke-linecap: round;
     filter: drop-shadow(0 0 6px rgba(45,190,96,0.9));
-    animation: clockwise 2.4s linear infinite;
+    animation: clockwise 4s linear infinite;
   }
 
   .trace-line-2 {
