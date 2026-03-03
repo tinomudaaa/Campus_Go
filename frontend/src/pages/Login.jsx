@@ -4,90 +4,98 @@ import { Box, Card, CardContent, TextField, Button, Typography, Alert } from '@m
 import DirectionsBusIcon from '@mui/icons-material/DirectionsBus';
 
 const borderAnimation = `
-  @keyframes chase1 {
-    0%   { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
+  @keyframes clockwise {
+    from { stroke-dashoffset: 1200; }
+    to   { stroke-dashoffset: 0; }
   }
-  @keyframes chase2 {
-    0%   { transform: rotate(120deg); }
-    100% { transform: rotate(480deg); }
-  }
-  @keyframes chase3 {
-    0%   { transform: rotate(240deg); }
-    100% { transform: rotate(600deg); }
+  @keyframes counter {
+    from { stroke-dashoffset: 0; }
+    to   { stroke-dashoffset: 1200; }
   }
 
   .login-outer {
     position: relative;
     width: 400px;
-    border-radius: 20px;
     z-index: 1;
-    padding: 3px;
-    background: transparent;
   }
 
-  .chaser {
+  .login-border-svg {
     position: absolute;
-    inset: -3px;
-    border-radius: 22px;
+    top: -3px;
+    left: -3px;
+    width: calc(100% + 6px);
+    height: calc(100% + 6px);
     pointer-events: none;
+    z-index: 2;
+    overflow: visible;
   }
 
-  /* Line 1 — bright green, fast */
-  .chaser-1 {
-    animation: chase1 1.6s linear infinite;
-    background: conic-gradient(
-      from 0deg,
-      transparent 0deg,
-      transparent 260deg,
-      #2DBE60 300deg,
-      #afffcf 340deg,
-      transparent 360deg
-    );
+  /* Clockwise line */
+  .trace-cw {
+    fill: none;
+    stroke: #2DBE60;
+    stroke-width: 3;
+    stroke-linecap: round;
+    stroke-dasharray: 120 1080;
+    animation: clockwise 2.4s linear infinite;
+    filter: drop-shadow(0 0 6px rgba(45,190,96,0.9));
   }
 
-  /* Line 2 — lighter green, medium */
-  .chaser-2 {
-    animation: chase2 2.2s linear infinite;
-    background: conic-gradient(
-      from 0deg,
-      transparent 0deg,
-      transparent 270deg,
-      rgba(45,190,96,0.6) 310deg,
-      rgba(175,255,207,0.7) 345deg,
-      transparent 360deg
-    );
-  }
-
-  /* Line 3 — faint, slow */
-  .chaser-3 {
-    animation: chase3 3s linear infinite;
-    background: conic-gradient(
-      from 0deg,
-      transparent 0deg,
-      transparent 280deg,
-      rgba(45,190,96,0.35) 320deg,
-      rgba(175,255,207,0.4) 350deg,
-      transparent 360deg
-    );
-  }
-
-  /* White fill keeps card interior clean */
-  .login-inner-fill {
-    position: absolute;
-    inset: 3px;
-    border-radius: 18px;
-    background: #fff;
-    z-index: 0;
+  /* Counter-clockwise line */
+  .trace-ccw {
+    fill: none;
+    stroke: #2DBE60;
+    stroke-width: 3;
+    stroke-linecap: round;
+    stroke-dasharray: 120 1080;
+    animation: counter 2.4s linear infinite;
+    filter: drop-shadow(0 0 6px rgba(45,190,96,0.9));
   }
 
   .login-card-inner {
     position: relative;
     z-index: 1;
-    border-radius: 18px;
+    border-radius: 20px;
     overflow: hidden;
   }
 `;
+
+// Rounded rect SVG path — 400x(dynamic) with r=20
+// We use a fixed height approx and let SVG scale
+function RoundedRectPath({ className }) {
+  const w = 406;
+  const h = 536;
+  const r = 22;
+  const perimeter = 2 * (w - 2 * r) + 2 * (h - 2 * r) + 2 * Math.PI * r;
+
+  const d = `
+    M ${r} 0
+    L ${w - r} 0
+    Q ${w} 0 ${w} ${r}
+    L ${w} ${h - r}
+    Q ${w} ${h} ${w - r} ${h}
+    L ${r} ${h}
+    Q 0 ${h} 0 ${h - r}
+    L 0 ${r}
+    Q 0 0 ${r} 0
+    Z
+  `;
+
+  return (
+    <svg
+      className="login-border-svg"
+      viewBox={`0 0 ${w} ${h}`}
+      preserveAspectRatio="none"
+    >
+      {/* Faint full border so you can see the shape */}
+      <path d={d} fill="none" stroke="rgba(45,190,96,0.12)" strokeWidth="1.5" />
+      {/* Clockwise chaser */}
+      <path d={d} className="trace-cw" strokeDasharray={`120 ${Math.round(perimeter - 120)}`} />
+      {/* Counter-clockwise chaser */}
+      <path d={d} className="trace-ccw" strokeDasharray={`120 ${Math.round(perimeter - 120)}`} />
+    </svg>
+  );
+}
 
 export default function Login() {
   const [email, setEmail] = useState('');
@@ -140,17 +148,14 @@ export default function Login() {
         pointerEvents: 'none',
       }} />
 
-      {/* Chasing border wrapper */}
       <div className="login-outer">
-        <div className="chaser chaser-1" />
-        <div className="chaser chaser-2" />
-        <div className="chaser chaser-3" />
-        <div className="login-inner-fill" />
+        {/* SVG border lines */}
+        <RoundedRectPath />
 
         <div className="login-card-inner">
           <Card sx={{
             width: '100%',
-            borderRadius: '18px',
+            borderRadius: '20px',
             boxShadow: '0 24px 64px rgba(0,0,0,0.5)',
             background: '#fff',
           }}>
