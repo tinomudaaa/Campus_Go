@@ -77,7 +77,7 @@ export default function OperatorAdminDashboard() {
 
   const fetchFeedback = async () => {
     try {
-      const res = await axios.get('https://campusgo-production-3b90.up.railway.app/api/operator-admin/feedback', { headers });
+      const res = await axios.get('https://campusgo-production-3b90.up.railway.app/api/feedback');
       setFeedback(res.data);
     } catch (err) { console.error(err); }
   };
