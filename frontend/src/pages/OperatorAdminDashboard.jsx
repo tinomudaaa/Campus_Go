@@ -23,7 +23,6 @@ import CheckIcon from '@mui/icons-material/Check';
 import CloseIcon from '@mui/icons-material/Close';
 import ChatBubbleOutlineIcon from '@mui/icons-material/ChatBubbleOutline';
 import DirectionsBusIcon from '@mui/icons-material/DirectionsBus';
-import DirectionsBusIcon from '@mui/icons-material/DirectionsBus';
 import CampusGoHeader from './CampusGoHeader';
 
 export default function OperatorAdminDashboard() {
