@@ -135,7 +135,7 @@ export default function StudentDashboard() {
         {/* Available Routes */}
         <Card sx={{ borderRadius: 3, mb: 3 }}>
           <CardContent>
-            <Typography variant="h6" fontWeight="bold" sx={{ mb: 2 }}>🚌 Available Routes</Typography>
+            <Typography variant="h6" fontWeight="bold" sx={{ mb: 2 }}>Available Routes</Typography>
             {routes.length === 0 ? (
               <Typography color="text.secondary" sx={{ textAlign: 'center', py: 3 }}>No routes available yet</Typography>
             ) : (
@@ -169,7 +169,7 @@ export default function StudentDashboard() {
         {/* Ticket History */}
         <Card sx={{ borderRadius: 3, mb: 3 }}>
           <CardContent>
-            <Typography variant="h6" fontWeight="bold" sx={{ mb: 2 }}>🎫 My Tickets</Typography>
+            <Typography variant="h6" fontWeight="bold" sx={{ mb: 2 }}>My Tickets</Typography>
             <TableContainer component={Paper} elevation={0}>
               <Table size="small">
                 <TableHead>
@@ -223,7 +223,7 @@ export default function StudentDashboard() {
         {/* Spending Analytics */}
         <Card sx={{ borderRadius: 3, mb: 3 }}>
           <CardContent>
-            <Typography variant="h6" fontWeight="bold" sx={{ mb: 3 }}>📊 My Spending Analytics</Typography>
+            <Typography variant="h6" fontWeight="bold" sx={{ mb: 3 }}>My Spending Analytics</Typography>
             <Box sx={{ display: 'flex', gap: 2, mb: 4, flexWrap: 'wrap' }}>
               <Card sx={{ flex: 1, minWidth: 140, borderRadius: 2, background: '#f9f9f9', border: '1px solid #e0e0e0' }}>
                 <CardContent>
@@ -258,7 +258,7 @@ export default function StudentDashboard() {
                 </CardContent>
               </Card>
             </Box>
-            <Typography variant="subtitle1" fontWeight="bold" sx={{ mb: 2 }}>💰 Spending by Route</Typography>
+            <Typography variant="subtitle1" fontWeight="bold" sx={{ mb: 2 }}>Spending by Route</Typography>
             {tickets.length === 0 ? (
               <Typography color="text.secondary" sx={{ textAlign: 'center', py: 2 }}>No trip history yet</Typography>
             ) : (
@@ -293,7 +293,7 @@ export default function StudentDashboard() {
         {/* Feedback */}
         <Card sx={{ borderRadius: 3 }}>
           <CardContent>
-            <Typography variant="h6" fontWeight="bold" sx={{ mb: 2 }}>💬 Submit Feedback</Typography>
+            <Typography variant="h6" fontWeight="bold" sx={{ mb: 2 }}>Submit Feedback</Typography>
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
               <Box>
                 <Typography variant="caption" color="text.secondary" sx={{ mb: 0.5, display: 'block' }}>Select Route</Typography>
@@ -340,7 +340,7 @@ export default function StudentDashboard() {
 
       {/* QR Dialog */}
       <Dialog open={qrDialogOpen} onClose={() => setQrDialogOpen(false)} maxWidth="xs" fullWidth>
-        <DialogTitle fontWeight="bold" sx={{ textAlign: 'center' }}>🎫 Your Ticket</DialogTitle>
+        <DialogTitle fontWeight="bold" sx={{ textAlign: 'center' }}>Your Ticket</DialogTitle>
         <DialogContent sx={{ textAlign: 'center' }}>
           <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
             {activeTicket?.route_name} — {activeTicket?.origin} → {activeTicket?.destination}
