@@ -16,7 +16,7 @@ import CameraAltIcon from '@mui/icons-material/CameraAlt';
 import TextField from '@mui/material/TextField';
 import CampusGoHeader from './CampusGoHeader';
 import DirectionsBusIcon from '@mui/icons-material/DirectionsBus';
-import { Html5QrcodeScanner, Html5QrcodeSupportedFormats } from 'html5-qrcode';
+import { Html5Qrcode } from 'html5-qrcode';
 
 const API = 'https://campusgo-production-3b90.up.railway.app';
 
@@ -32,6 +32,7 @@ export default function OperatorDashboard() {
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
   const [cameraOpen, setCameraOpen] = useState(false);
   const [scanning, setScanning] = useState(false);
+  const [cameraError, setCameraError] = useState('');
 
   const watchIdRef = useRef(null);
   const plateRef = useRef('');
@@ -65,44 +66,64 @@ export default function OperatorDashboard() {
     };
   }, []);
 
-  // Start camera scanner when dialog opens
+  // Start camera directly (not image upload mode)
   useEffect(() => {
     if (!cameraOpen) return;
-    const timer = setTimeout(() => {
-      if (scannerRef.current) return;
-      const scanner = new Html5QrcodeScanner(
-        'qr-reader',
-        {
-          fps: 10,
-          qrbox: { width: 250, height: 250 },
-          formatsToSupport: [Html5QrcodeSupportedFormats.QR_CODE],
-          rememberLastUsedCamera: true,
-          showTorchButtonIfSupported: true,
-        },
-        false
-      );
-      scanner.render(
-        async (decodedText) => {
-          scanner.clear().catch(() => {});
-          scannerRef.current = null;
-          setCameraOpen(false);
-          setScanning(true);
-          await validateTicket(decodedText);
-          setScanning(false);
-        },
-        (error) => { console.debug('QR scan:', error); }
-      );
-      scannerRef.current = scanner;
-    }, 300);
+    setCameraError('');
+
+    const timer = setTimeout(async () => {
+      try {
+        const html5QrCode = new Html5Qrcode('qr-reader-direct');
+        scannerRef.current = html5QrCode;
+
+        // Get back camera specifically
+        const cameras = await Html5Qrcode.getCameras();
+        if (!cameras || cameras.length === 0) {
+          setCameraError('No camera found on this device.');
+          return;
+        }
+
+        // Prefer back/environment camera
+        const backCamera = cameras.find(c =>
+          c.label.toLowerCase().includes('back') ||
+          c.label.toLowerCase().includes('rear') ||
+          c.label.toLowerCase().includes('environment')
+        ) || cameras[cameras.length - 1];
+
+        await html5QrCode.start(
+          backCamera.id,
+          {
+            fps: 15,
+            qrbox: { width: 250, height: 250 },
+            aspectRatio: 1.0,
+          },
+          async (decodedText) => {
+            // Stop scanning immediately on success
+            await html5QrCode.stop().catch(() => {});
+            scannerRef.current = null;
+            setCameraOpen(false);
+            setScanning(true);
+            await validateTicket(decodedText);
+            setScanning(false);
+          },
+          () => {} // ignore per-frame errors
+        );
+      } catch (err) {
+        console.error('Camera error:', err);
+        setCameraError('Could not access camera. Please allow camera permission and try again.');
+      }
+    }, 400);
+
     return () => clearTimeout(timer);
   }, [cameraOpen]);
 
-  const closeCamera = () => {
+  const closeCamera = async () => {
     if (scannerRef.current) {
-      scannerRef.current.clear().catch(() => {});
+      try { await scannerRef.current.stop(); } catch {}
       scannerRef.current = null;
     }
     setCameraOpen(false);
+    setCameraError('');
   };
 
   const validateTicket = async (code) => {
@@ -163,12 +184,6 @@ export default function OperatorDashboard() {
       const activeRes = await axios.get(`${API}/api/locations/active`);
       setActivePlates(activeRes.data.map(b => b.number_plate).filter(Boolean));
     } catch (err) { console.error(err); }
-  };
-
-  const handleLogout = () => {
-    if (tripActive) stopTrip();
-    localStorage.clear();
-    window.location.href = '/';
   };
 
   return (
@@ -263,37 +278,23 @@ export default function OperatorDashboard() {
               <QrCodeScannerIcon sx={{ color: '#2DBE60', fontSize: 28 }} />
               <Typography variant="h6" fontWeight="bold">Scan Ticket</Typography>
             </Box>
-
-            {/* Camera Button */}
-            <Button
-              fullWidth variant="contained"
+            <Button fullWidth variant="contained"
               startIcon={<CameraAltIcon />}
               onClick={() => setCameraOpen(true)}
               disabled={scanning}
-              sx={{
-                mb: 2, py: 1.8, fontSize: 15, fontWeight: 'bold',
-                background: '#1F1F1F',
-                '&:hover': { background: '#2DBE60' }
-              }}>
-              {scanning ? 'Validating...' : ' Open Camera Scanner'}
+              sx={{ mb: 2, py: 1.8, fontSize: 15, fontWeight: 'bold', background: '#1F1F1F', '&:hover': { background: '#2DBE60' } }}>
+              {scanning ? 'Validating...' : '📷  Open Camera Scanner'}
             </Button>
-
-            {/* Divider */}
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
               <Box sx={{ flex: 1, height: '1px', background: '#e0e0e0' }} />
               <Typography variant="caption" color="text.secondary">or enter manually</Typography>
               <Box sx={{ flex: 1, height: '1px', background: '#e0e0e0' }} />
             </Box>
-
-            {/* Manual Input */}
             <Box sx={{ display: 'flex', gap: 2 }}>
-              <TextField
-                fullWidth label="Enter QR code manually" value={qrInput}
+              <TextField fullWidth label="Enter QR code manually" value={qrInput}
                 onChange={e => setQrInput(e.target.value)}
                 onKeyDown={e => e.key === 'Enter' && validateTicket(qrInput)}
-                placeholder="Type or paste ticket code..."
-                size="small"
-              />
+                placeholder="Type or paste ticket code..." size="small" />
               <Button variant="contained" onClick={() => validateTicket(qrInput)}
                 disabled={!qrInput.trim()}
                 sx={{ px: 3, background: '#2DBE60', fontWeight: 'bold', whiteSpace: 'nowrap', '&:hover': { background: '#1F1F1F' } }}>
@@ -354,7 +355,7 @@ export default function OperatorDashboard() {
         </Card>
       </Box>
 
-      {/* Camera Scanner Dialog */}
+      {/* Camera Dialog — direct camera mode, no image upload */}
       <Dialog open={cameraOpen} onClose={closeCamera} maxWidth="sm" fullWidth
         PaperProps={{ sx: { borderRadius: 3 } }}>
         <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', pb: 1 }}>
@@ -365,14 +366,28 @@ export default function OperatorDashboard() {
           <IconButton onClick={closeCamera} size="small"><CloseIcon /></IconButton>
         </DialogTitle>
         <DialogContent sx={{ pb: 1 }}>
-          <Alert severity="info" sx={{ mb: 2, fontSize: 13 }}>
-            Point the camera at the student's QR code — it scans automatically.
-          </Alert>
-          <Box id="qr-reader" sx={{ width: '100%', '& video': { borderRadius: 2 } }} />
+          {cameraError ? (
+            <Alert severity="error" sx={{ mb: 2 }}>{cameraError}</Alert>
+          ) : (
+            <Alert severity="info" sx={{ mb: 2, fontSize: 13 }}>
+              Camera will open automatically — point at student's QR code.
+            </Alert>
+          )}
+          <Box
+            id="qr-reader-direct"
+            sx={{
+              width: '100%',
+              minHeight: 300,
+              background: '#000',
+              borderRadius: 2,
+              overflow: 'hidden',
+              '& video': { width: '100% !important', borderRadius: 2 },
+              '& canvas': { display: 'none' },
+            }}
+          />
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2 }}>
-          <Button onClick={closeCamera} variant="outlined" fullWidth
-            sx={{ borderColor: '#ccc', color: '#555' }}>
+          <Button onClick={closeCamera} variant="outlined" fullWidth sx={{ borderColor: '#ccc', color: '#555' }}>
             Cancel
           </Button>
         </DialogActions>
