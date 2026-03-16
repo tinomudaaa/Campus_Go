@@ -275,7 +275,7 @@ export default function OperatorDashboard() {
                 background: '#1F1F1F',
                 '&:hover': { background: '#2DBE60' }
               }}>
-              {scanning ? 'Validating...' : '📷  Open Camera Scanner'}
+              {scanning ? 'Validating...' : ' Open Camera Scanner'}
             </Button>
 
             {/* Divider */}
