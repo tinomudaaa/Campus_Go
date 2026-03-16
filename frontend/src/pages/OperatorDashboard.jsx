@@ -283,7 +283,7 @@ export default function OperatorDashboard() {
               onClick={() => setCameraOpen(true)}
               disabled={scanning}
               sx={{ mb: 2, py: 1.8, fontSize: 15, fontWeight: 'bold', background: '#1F1F1F', '&:hover': { background: '#2DBE60' } }}>
-              {scanning ? 'Validating...' : '📷  Open Camera Scanner'}
+              {scanning ? 'Validating...' : 'Open Camera Scanner'}
             </Button>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
               <Box sx={{ flex: 1, height: '1px', background: '#e0e0e0' }} />
