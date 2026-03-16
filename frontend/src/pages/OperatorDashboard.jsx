@@ -3,16 +3,22 @@ import axios from 'axios';
 import {
   Box, Typography, Card, CardContent, Button,
   Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
-  Paper, Chip, Alert, Snackbar, MenuItem, Select, FormControl, InputLabel
+  Paper, Chip, Alert, Snackbar, MenuItem, Select, FormControl, InputLabel,
+  Dialog, DialogTitle, DialogContent, DialogActions, IconButton
 } from '@mui/material';
 import QrCodeScannerIcon from '@mui/icons-material/QrCodeScanner';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import FiberManualRecordIcon from '@mui/icons-material/FiberManualRecord';
 import StopCircleIcon from '@mui/icons-material/StopCircle';
 import PlayCircleIcon from '@mui/icons-material/PlayCircle';
+import CloseIcon from '@mui/icons-material/Close';
+import CameraAltIcon from '@mui/icons-material/CameraAlt';
 import TextField from '@mui/material/TextField';
 import CampusGoHeader from './CampusGoHeader';
 import DirectionsBusIcon from '@mui/icons-material/DirectionsBus';
+import { Html5QrcodeScanner, Html5QrcodeSupportedFormats } from 'html5-qrcode';
+
+const API = 'https://campusgo-production-3b90.up.railway.app';
 
 export default function OperatorDashboard() {
   const [qrInput, setQrInput] = useState('');
@@ -24,20 +30,24 @@ export default function OperatorDashboard() {
   const [selectedPlate, setSelectedPlate] = useState('');
   const [tripActive, setTripActive] = useState(false);
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
+  const [cameraOpen, setCameraOpen] = useState(false);
+  const [scanning, setScanning] = useState(false);
+
   const watchIdRef = useRef(null);
   const plateRef = useRef('');
   const selectedRouteIdRef = useRef('');
+  const scannerRef = useRef(null);
   const user = JSON.parse(localStorage.getItem('campusgo_user'));
 
   const fetchCompanyData = async () => {
     try {
-      const routesRes = await axios.get('https://campusgo-production-3b90.up.railway.app/api/routes');
+      const routesRes = await axios.get(`${API}/api/routes`);
       setRoutes(routesRes.data);
       if (user?.company_id) {
-        const platesRes = await axios.get(`https://campusgo-production-3b90.up.railway.app/api/buses/company/${user.company_id}`);
+        const platesRes = await axios.get(`${API}/api/buses/company/${user.company_id}`);
         setCompanyPlates(platesRes.data);
       }
-      const activeRes = await axios.get('https://campusgo-production-3b90.up.railway.app/api/locations/active');
+      const activeRes = await axios.get(`${API}/api/locations/active`);
       setActivePlates(activeRes.data.map(b => b.number_plate).filter(Boolean));
     } catch (err) { console.error(err); }
   };
@@ -45,7 +55,7 @@ export default function OperatorDashboard() {
   useEffect(() => {
     fetchCompanyData();
     const interval = setInterval(() => {
-      axios.get('https://campusgo-production-3b90.up.railway.app/api/locations/active')
+      axios.get(`${API}/api/locations/active`)
         .then(res => setActivePlates(res.data.map(b => b.number_plate).filter(Boolean)))
         .catch(console.error);
     }, 10000);
@@ -55,8 +65,65 @@ export default function OperatorDashboard() {
     };
   }, []);
 
+  // Start camera scanner when dialog opens
+  useEffect(() => {
+    if (!cameraOpen) return;
+    const timer = setTimeout(() => {
+      if (scannerRef.current) return;
+      const scanner = new Html5QrcodeScanner(
+        'qr-reader',
+        {
+          fps: 10,
+          qrbox: { width: 250, height: 250 },
+          formatsToSupport: [Html5QrcodeSupportedFormats.QR_CODE],
+          rememberLastUsedCamera: true,
+          showTorchButtonIfSupported: true,
+        },
+        false
+      );
+      scanner.render(
+        async (decodedText) => {
+          scanner.clear().catch(() => {});
+          scannerRef.current = null;
+          setCameraOpen(false);
+          setScanning(true);
+          await validateTicket(decodedText);
+          setScanning(false);
+        },
+        (error) => { console.debug('QR scan:', error); }
+      );
+      scannerRef.current = scanner;
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [cameraOpen]);
+
+  const closeCamera = () => {
+    if (scannerRef.current) {
+      scannerRef.current.clear().catch(() => {});
+      scannerRef.current = null;
+    }
+    setCameraOpen(false);
+  };
+
+  const validateTicket = async (code) => {
+    if (!code?.trim()) return;
+    try {
+      const res = await axios.post(`${API}/api/tickets/scan`, { qr_code: code.trim() });
+      setScannedTickets(prev => [res.data, ...prev]);
+      setSnackbar({ open: true, message: '✅ Ticket validated successfully!', severity: 'success' });
+      setQrInput('');
+    } catch (err) {
+      setSnackbar({
+        open: true,
+        message: err.response?.data?.error || '❌ Invalid or already used ticket',
+        severity: 'error'
+      });
+      setQrInput('');
+    }
+  };
+
   const sendLocation = (lat, lng) => {
-    return axios.post('https://campusgo-production-3b90.up.railway.app/api/locations/update', {
+    return axios.post(`${API}/api/locations/update`, {
       operator_id: user.id, latitude: lat, longitude: lng,
       route_id: selectedRouteIdRef.current, number_plate: plateRef.current
     });
@@ -65,10 +132,8 @@ export default function OperatorDashboard() {
   const startTrip = () => {
     if (!selectedRouteId) return setSnackbar({ open: true, message: 'Please select a route first.', severity: 'error' });
     if (!selectedPlate) return setSnackbar({ open: true, message: 'Please select a bus plate.', severity: 'error' });
-
     plateRef.current = selectedPlate;
     selectedRouteIdRef.current = selectedRouteId;
-
     navigator.geolocation.getCurrentPosition(
       (initialPos) => {
         setTripActive(true);
@@ -85,7 +150,7 @@ export default function OperatorDashboard() {
         }, 5000);
         setSnackbar({ open: true, message: `Trip started! Bus ${selectedPlate} is now live.`, severity: 'success' });
       },
-      () => setSnackbar({ open: true, message: 'Location permission denied. Please allow location access.', severity: 'error' })
+      () => setSnackbar({ open: true, message: 'Location permission denied.', severity: 'error' })
     );
   };
 
@@ -93,24 +158,11 @@ export default function OperatorDashboard() {
     setTripActive(false);
     if (watchIdRef.current) { clearInterval(watchIdRef.current); watchIdRef.current = null; }
     try {
-      await axios.delete(`https://campusgo-production-3b90.up.railway.app/api/locations/stop/${user.id}`);
+      await axios.delete(`${API}/api/locations/stop/${user.id}`);
       setSnackbar({ open: true, message: 'Trip ended.', severity: 'info' });
-      const activeRes = await axios.get('https://campusgo-production-3b90.up.railway.app/api/locations/active');
+      const activeRes = await axios.get(`${API}/api/locations/active`);
       setActivePlates(activeRes.data.map(b => b.number_plate).filter(Boolean));
     } catch (err) { console.error(err); }
-  };
-
-  const handleScan = async () => {
-    if (!qrInput.trim()) return;
-    try {
-      const res = await axios.post('https://campusgo-production-3b90.up.railway.app/api/tickets/scan', { qr_code: qrInput });
-      setScannedTickets(prev => [res.data, ...prev]);
-      setSnackbar({ open: true, message: 'Ticket validated successfully!', severity: 'success' });
-      setQrInput('');
-    } catch (err) {
-      setSnackbar({ open: true, message: err.response?.data?.error || 'Invalid or already used ticket', severity: 'error' });
-      setQrInput('');
-    }
   };
 
   const handleLogout = () => {
@@ -167,8 +219,8 @@ export default function OperatorDashboard() {
                       companyPlates.map(bus => {
                         const inUse = activePlates.includes(bus.plate_number) && bus.plate_number !== plateRef.current;
                         return (
-                          <MenuItem key={bus.id} value={bus.plate_number} disabled={inUse} sx={{ color: inUse ? '#aaa' : 'inherit' }}>
-                            {bus.plate_number} {inUse ? '(In Use)' : ''}
+                          <MenuItem key={bus.id} value={bus.plate_number} disabled={inUse}>
+                            {bus.plate_number}{inUse ? ' (In Use)' : ''}
                           </MenuItem>
                         );
                       })
@@ -211,18 +263,40 @@ export default function OperatorDashboard() {
               <QrCodeScannerIcon sx={{ color: '#2DBE60', fontSize: 28 }} />
               <Typography variant="h6" fontWeight="bold">Scan Ticket</Typography>
             </Box>
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-              Use a QR scanner device or manually enter the ticket code below.
-            </Typography>
+
+            {/* Camera Button */}
+            <Button
+              fullWidth variant="contained"
+              startIcon={<CameraAltIcon />}
+              onClick={() => setCameraOpen(true)}
+              disabled={scanning}
+              sx={{
+                mb: 2, py: 1.8, fontSize: 15, fontWeight: 'bold',
+                background: '#1F1F1F',
+                '&:hover': { background: '#2DBE60' }
+              }}>
+              {scanning ? 'Validating...' : '📷  Open Camera Scanner'}
+            </Button>
+
+            {/* Divider */}
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
+              <Box sx={{ flex: 1, height: '1px', background: '#e0e0e0' }} />
+              <Typography variant="caption" color="text.secondary">or enter manually</Typography>
+              <Box sx={{ flex: 1, height: '1px', background: '#e0e0e0' }} />
+            </Box>
+
+            {/* Manual Input */}
             <Box sx={{ display: 'flex', gap: 2 }}>
               <TextField
-                fullWidth label="Scan or enter QR code" value={qrInput}
+                fullWidth label="Enter QR code manually" value={qrInput}
                 onChange={e => setQrInput(e.target.value)}
-                onKeyDown={e => e.key === 'Enter' && handleScan()}
-                placeholder="Point scanner at QR code or type code here..."
+                onKeyDown={e => e.key === 'Enter' && validateTicket(qrInput)}
+                placeholder="Type or paste ticket code..."
+                size="small"
               />
-              <Button variant="contained" onClick={handleScan}
-                sx={{ px: 4, background: '#2DBE60', fontWeight: 'bold', whiteSpace: 'nowrap', '&:hover': { background: '#1F1F1F' } }}>
+              <Button variant="contained" onClick={() => validateTicket(qrInput)}
+                disabled={!qrInput.trim()}
+                sx={{ px: 3, background: '#2DBE60', fontWeight: 'bold', whiteSpace: 'nowrap', '&:hover': { background: '#1F1F1F' } }}>
                 Validate
               </Button>
             </Box>
@@ -235,6 +309,10 @@ export default function OperatorDashboard() {
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
               <CheckCircleIcon sx={{ color: '#2DBE60' }} />
               <Typography variant="h6" fontWeight="bold">Scanned Tickets</Typography>
+              {scannedTickets.length > 0 && (
+                <Chip label={scannedTickets.length} size="small"
+                  sx={{ background: '#2DBE60', color: '#fff', fontWeight: 'bold', ml: 1 }} />
+              )}
             </Box>
             <TableContainer component={Paper} elevation={0}>
               <Table>
@@ -275,6 +353,30 @@ export default function OperatorDashboard() {
           </CardContent>
         </Card>
       </Box>
+
+      {/* Camera Scanner Dialog */}
+      <Dialog open={cameraOpen} onClose={closeCamera} maxWidth="sm" fullWidth
+        PaperProps={{ sx: { borderRadius: 3 } }}>
+        <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', pb: 1 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <QrCodeScannerIcon sx={{ color: '#2DBE60' }} />
+            <Typography fontWeight="bold">Scan Student Ticket</Typography>
+          </Box>
+          <IconButton onClick={closeCamera} size="small"><CloseIcon /></IconButton>
+        </DialogTitle>
+        <DialogContent sx={{ pb: 1 }}>
+          <Alert severity="info" sx={{ mb: 2, fontSize: 13 }}>
+            Point the camera at the student's QR code — it scans automatically.
+          </Alert>
+          <Box id="qr-reader" sx={{ width: '100%', '& video': { borderRadius: 2 } }} />
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button onClick={closeCamera} variant="outlined" fullWidth
+            sx={{ borderColor: '#ccc', color: '#555' }}>
+            Cancel
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       <Snackbar open={snackbar.open} autoHideDuration={4000} onClose={() => setSnackbar({ ...snackbar, open: false })}>
         <Alert severity={snackbar.severity} onClose={() => setSnackbar({ ...snackbar, open: false })}>
