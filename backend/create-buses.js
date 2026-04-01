@@ -1,0 +1,1 @@
+const pool = require('./db'); pool.query("CREATE TABLE IF NOT EXISTS buses (id SERIAL PRIMARY KEY, company_id INTEGER REFERENCES companies(id), number_plate VARCHAR(50), route_id INTEGER, created_at TIMESTAMP DEFAULT NOW())").then(r => { console.log('buses table OK'); pool.end(); })

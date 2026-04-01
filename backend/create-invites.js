@@ -1,0 +1,1 @@
+const pool = require('./db'); pool.query("CREATE TABLE IF NOT EXISTS invites (id SERIAL PRIMARY KEY, email VARCHAR(255), token VARCHAR(255) UNIQUE, company_id INTEGER REFERENCES companies(id), created_by INTEGER, status VARCHAR(50) DEFAULT 'pending', created_at TIMESTAMP DEFAULT NOW())").then(r => { console.log('invites table OK'); pool.end(); })

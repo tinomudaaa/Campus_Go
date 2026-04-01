@@ -11,8 +11,8 @@ router.post('/register', async (req, res) => {
     }
     const hashedPassword = await bcrypt.hash(password, 10);
     const userResult = await pool.query(
-      'INSERT INTO users (full_name, email, password, role) VALUES ($1, $2, $3, $4) RETURNING id',
-      [full_name, email, hashedPassword, 'student']
+      'INSERT INTO users (full_name, email, password, role, student_id) VALUES ($1, $2, $3, $4, $5) RETURNING id',
+      [full_name, email, hashedPassword, 'student', req.body.student_id]
     );
     await pool.query('INSERT INTO wallets (user_id, balance) VALUES ($1, 0)', [userResult.rows[0].id]);
     return res.json({ message: 'Student registered successfully' });

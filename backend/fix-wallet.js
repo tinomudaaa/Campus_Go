@@ -1,0 +1,1 @@
+const pool = require('./db'); pool.query("INSERT INTO wallets (user_id, balance) SELECT id, 0 FROM users WHERE role='student' AND id NOT IN (SELECT user_id FROM wallets)").then(r => { console.log('wallets fixed:', r.rowCount); pool.end(); })
