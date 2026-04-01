@@ -90,7 +90,7 @@ export default function Login() {
     e.preventDefault();
     setError('');
     try {
-      const res = await axios.post('https://campusgo-production-3b90.up.railway.app/api/auth/login', { email, password });
+      const res = await axios.post('https://campus-go-f21t.onrender.com/api/auth/login', { email, password });
       localStorage.setItem('campusgo_user', JSON.stringify(res.data));
       const role = res.data.role;
       if (role === 'platform_admin') window.location.href = '/admin';

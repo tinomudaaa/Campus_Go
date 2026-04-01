@@ -48,7 +48,7 @@ export default function OperatorSignUp() {
       return setError('Password must be at least 6 characters');
 
     try {
-      await axios.post('https://campusgo-production-3b90.up.railway.app/api/auth/register', {
+      await axios.post('https://campus-go-f21t.onrender.com/api/auth/register', {
         full_name: account.full_name,
         email: account.email,
         password: account.password,

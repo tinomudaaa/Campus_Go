@@ -18,7 +18,7 @@ import CampusGoHeader from './CampusGoHeader';
 import DirectionsBusIcon from '@mui/icons-material/DirectionsBus';
 import { Html5Qrcode } from 'html5-qrcode';
 
-const API = 'https://campusgo-production-3b90.up.railway.app';
+const API = 'https://campus-go-f21t.onrender.com';
 
 export default function OperatorDashboard() {
   const [qrInput, setQrInput] = useState('');

@@ -54,15 +54,15 @@ export default function OperatorAdminDashboard() {
   const fetchAll = async () => {
     try {
       const [busRes, routeRes, staffRes] = await Promise.all([
-        axios.get(`https://campusgo-production-3b90.up.railway.app/api/buses/company/${user?.company_id}`),
-        axios.get(`https://campusgo-production-3b90.up.railway.app/api/operator-admin/routes`, { headers }),
-        axios.get(`https://campusgo-production-3b90.up.railway.app/api/operator-admin/staff`, { headers }),
+        axios.get(`https://campus-go-f21t.onrender.com/api/buses/company/${user?.company_id}`),
+        axios.get(`https://campus-go-f21t.onrender.com/api/operator-admin/routes`, { headers }),
+        axios.get(`https://campus-go-f21t.onrender.com/api/operator-admin/staff`, { headers }),
       ]);
       setBuses(busRes.data); setRoutes(routeRes.data); setStaff(staffRes.data);
       setStats({ buses: busRes.data.length, routes: routeRes.data.length, staff: staffRes.data.filter(s => s.status === 'active').length, activeTrips: 0 });
     } catch (err) { console.error(err); }
     try {
-      const activeRes = await axios.get('https://campusgo-production-3b90.up.railway.app/api/locations/active');
+      const activeRes = await axios.get('https://campus-go-f21t.onrender.com/api/locations/active');
       setActiveBuses(activeRes.data);
       setStats(prev => ({ ...prev, activeTrips: activeRes.data.length }));
     } catch (err) { console.error('Active buses error:', err); }
@@ -70,21 +70,21 @@ export default function OperatorAdminDashboard() {
 
   const fetchAnalytics = async () => {
     try {
-      const res = await axios.get('https://campusgo-production-3b90.up.railway.app/api/operator-admin/analytics', { headers });
+      const res = await axios.get('https://campus-go-f21t.onrender.com/api/operator-admin/analytics', { headers });
       setAnalytics(res.data);
     } catch (err) { console.error(err); }
   };
 
   const fetchFeedback = async () => {
     try {
-      const res = await axios.get('https://campusgo-production-3b90.up.railway.app/api/feedback');
+      const res = await axios.get('https://campus-go-f21t.onrender.com/api/feedback');
       setFeedback(res.data);
     } catch (err) { console.error(err); }
   };
 
   const fetchTrips = async () => {
     try {
-      const res = await axios.get('https://campusgo-production-3b90.up.railway.app/api/operator-admin/trips', { headers });
+      const res = await axios.get('https://campus-go-f21t.onrender.com/api/operator-admin/trips', { headers });
       setTrips(res.data);
     } catch (err) { console.error(err); }
   };
@@ -92,7 +92,7 @@ export default function OperatorAdminDashboard() {
   useEffect(() => {
     fetchAll();
     const interval = setInterval(() => {
-      axios.get('https://campusgo-production-3b90.up.railway.app/api/locations/active').then(res => setActiveBuses(res.data)).catch(console.error);
+      axios.get('https://campus-go-f21t.onrender.com/api/locations/active').then(res => setActiveBuses(res.data)).catch(console.error);
     }, 5000);
     return () => clearInterval(interval);
   }, []);
@@ -106,7 +106,7 @@ export default function OperatorAdminDashboard() {
   const handleAddBus = async () => {
     if (!newBus.plate_number.trim()) return;
     try {
-      await axios.post('https://campusgo-production-3b90.up.railway.app/api/buses', {
+      await axios.post('https://campus-go-f21t.onrender.com/api/buses', {
         company_id: user?.company_id,
         plate_number: newBus.plate_number.trim().toUpperCase(),
         capacity: parseInt(newBus.capacity) || 30,
@@ -120,7 +120,7 @@ export default function OperatorAdminDashboard() {
 
   const handleDeleteBus = async (id) => {
     try {
-      await axios.delete(`https://campusgo-production-3b90.up.railway.app/api/buses/${id}`);
+      await axios.delete(`https://campus-go-f21t.onrender.com/api/buses/${id}`);
       setSnackbar({ open: true, message: 'Bus removed.', severity: 'info' }); fetchAll();
     } catch (err) { setSnackbar({ open: true, message: 'Failed to remove bus.', severity: 'error' }); }
   };
@@ -128,7 +128,7 @@ export default function OperatorAdminDashboard() {
   const handleAddRoute = async () => {
     if (!newRoute.name.trim()) return;
     try {
-      await axios.post('https://campusgo-production-3b90.up.railway.app/api/routes', {
+      await axios.post('https://campus-go-f21t.onrender.com/api/routes', {
         company_id: user?.company_id, name: newRoute.name.trim(),
         origin: newRoute.origin.trim() || 'TBD',
         destination: newRoute.destination.trim() || 'TBD',
@@ -141,7 +141,7 @@ export default function OperatorAdminDashboard() {
 
   const handleDeleteRoute = async (id) => {
     try {
-      await axios.delete(`https://campusgo-production-3b90.up.railway.app/api/routes/${id}`);
+      await axios.delete(`https://campus-go-f21t.onrender.com/api/routes/${id}`);
       setSnackbar({ open: true, message: 'Route removed.', severity: 'info' }); fetchAll();
     } catch (err) { setSnackbar({ open: true, message: 'Failed to remove route.', severity: 'error' }); }
   };
@@ -149,7 +149,7 @@ export default function OperatorAdminDashboard() {
   const handleInviteStaff = async () => {
     if (!inviteEmail.trim()) return;
     try {
-      const res = await axios.post('https://campusgo-production-3b90.up.railway.app/api/operator-admin/invite-staff', { email: inviteEmail.trim() }, { headers });
+      const res = await axios.post('https://campus-go-f21t.onrender.com/api/operator-admin/invite-staff', { email: inviteEmail.trim() }, { headers });
       setInviteLink(res.data.invite_url);
       setStaffDialog(false); setInviteLinkDialog(true); setInviteEmail(''); fetchAll();
     } catch (err) {
@@ -160,7 +160,7 @@ export default function OperatorAdminDashboard() {
   const handleAddTrip = async () => {
     if (!newTrip.route_id || !newTrip.bus_id || !newTrip.trip_date || !newTrip.departure_time) return;
     try {
-      await axios.post('https://campusgo-production-3b90.up.railway.app/api/operator-admin/trips', newTrip, { headers });
+      await axios.post('https://campus-go-f21t.onrender.com/api/operator-admin/trips', newTrip, { headers });
       setSnackbar({ open: true, message: 'Trip scheduled!', severity: 'success' });
       setTripDialog(false);
       setNewTrip({ route_id: '', bus_id: '', trip_date: '', departure_time: '' });
@@ -172,14 +172,14 @@ export default function OperatorAdminDashboard() {
 
   const handleDeleteTrip = async (id) => {
     try {
-      await axios.delete(`https://campusgo-production-3b90.up.railway.app/api/operator-admin/trips/${id}`, { headers });
+      await axios.delete(`https://campus-go-f21t.onrender.com/api/operator-admin/trips/${id}`, { headers });
       setSnackbar({ open: true, message: 'Trip removed.', severity: 'info' }); fetchTrips();
     } catch (err) { setSnackbar({ open: true, message: 'Failed to remove trip.', severity: 'error' }); }
   };
 
   const handleTripStatus = async (id, status) => {
     try {
-      await axios.patch(`https://campusgo-production-3b90.up.railway.app/api/operator-admin/trips/${id}/status`, { status }, { headers });
+      await axios.patch(`https://campus-go-f21t.onrender.com/api/operator-admin/trips/${id}/status`, { status }, { headers });
       setSnackbar({ open: true, message: `Trip marked as ${status}.`, severity: 'success' }); fetchTrips();
     } catch (err) { setSnackbar({ open: true, message: 'Failed to update trip.', severity: 'error' }); }
   };

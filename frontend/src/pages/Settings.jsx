@@ -16,7 +16,7 @@ export default function Settings() {
 
   const handleProfileUpdate = async () => {
     try {
-      const res = await axios.put(`https://campusgo-production-3b90.up.railway.app/api/auth/profile/${user.id}`, profileForm);
+      const res = await axios.put(`https://campus-go-f21t.onrender.com/api/auth/profile/${user.id}`, profileForm);
       const updatedUser = { ...user, ...res.data };
       setUser(updatedUser);
       localStorage.setItem('campusgo_user', JSON.stringify(updatedUser));
@@ -31,7 +31,7 @@ export default function Settings() {
       return setSnackbar({ open: true, message: 'New passwords do not match.', severity: 'error' });
     }
     try {
-      await axios.put(`https://campusgo-production-3b90.up.railway.app/api/auth/password/${user.id}`, {
+      await axios.put(`https://campus-go-f21t.onrender.com/api/auth/password/${user.id}`, {
         current_password: passwordForm.current_password,
         new_password: passwordForm.new_password
       });

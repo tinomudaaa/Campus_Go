@@ -16,7 +16,7 @@ export default function AcceptInvite() {
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
-    axios.get(`https://campusgo-production-3b90.up.railway.app/api/auth/invite/${token}`)
+    axios.get(`https://campus-go-f21t.onrender.com/api/auth/invite/${token}`)
       .then(res => { setInvite(res.data); setLoading(false); })
       .catch(() => { setError('This invite link is invalid or has already been used.'); setLoading(false); });
   }, [token]);
@@ -28,7 +28,7 @@ export default function AcceptInvite() {
     setSubmitting(true);
     setError('');
     try {
-      await axios.post('https://campusgo-production-3b90.up.railway.app/api/auth/accept-invite', { token, full_name: fullName, password });
+      await axios.post('https://campus-go-f21t.onrender.com/api/auth/accept-invite', { token, full_name: fullName, password });
       setSuccess(true);
     } catch (err) {
       setError(err.response?.data?.error || 'Something went wrong');

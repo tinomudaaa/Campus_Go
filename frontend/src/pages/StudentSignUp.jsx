@@ -13,7 +13,7 @@ export default function StudentSignUp() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      await axios.post('https://campusgo-production-3b90.up.railway.app/api/auth/register', {
+      await axios.post('https://campus-go-f21t.onrender.com/api/auth/register', {
         full_name: `${form.full_name} ${form.surname}`,
         email: form.email,
         password: form.password,

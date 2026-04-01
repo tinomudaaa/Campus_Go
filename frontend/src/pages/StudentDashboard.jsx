@@ -50,17 +50,17 @@ export default function StudentDashboard() {
 
   const fetchData = async () => {
     try {
-      const routesRes = await axios.get('https://campusgo-production-3b90.up.railway.app/api/routes');
+      const routesRes = await axios.get('https://campus-go-f21t.onrender.com/api/routes');
       setRoutes(routesRes.data);
     } catch (err) { console.error('Routes error:', err); }
 
     try {
-      const busesRes = await axios.get('https://campusgo-production-3b90.up.railway.app/api/buses');
+      const busesRes = await axios.get('https://campus-go-f21t.onrender.com/api/buses');
       setBuses(busesRes.data);
     } catch (err) { console.error('Buses error:', err); }
 
     try {
-      const ticketsRes = await axios.get(`https://campusgo-production-3b90.up.railway.app/api/tickets/${user.id}`);
+      const ticketsRes = await axios.get(`https://campus-go-f21t.onrender.com/api/tickets/${user.id}`);
       setTickets(ticketsRes.data);
     } catch (err) { console.error('Tickets error:', err); }
   };
@@ -69,7 +69,7 @@ export default function StudentDashboard() {
 
   const handleBuyTicket = async () => {
     try {
-      await axios.post('https://campusgo-production-3b90.up.railway.app/api/tickets/buy', {
+      await axios.post('https://campus-go-f21t.onrender.com/api/tickets/buy', {
         student_id: user.id,
         route_id: selectedRoute.id,
         bus_id: null
@@ -89,7 +89,7 @@ export default function StudentDashboard() {
 
   const handleFeedback = async () => {
     try {
-      await axios.post('https://campusgo-production-3b90.up.railway.app/api/feedback', {
+      await axios.post('https://campus-go-f21t.onrender.com/api/feedback', {
         student_id: user.id,
         route_id: feedbackRoute,
         message: feedbackMessage
