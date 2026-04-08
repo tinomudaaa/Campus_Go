@@ -54,7 +54,6 @@ export default function Login() {
   const [svgDims, setSvgDims] = useState({ w: 406, h: 600 });
   const cardRef = useRef(null);
 
-  // Measure the actual rendered card height
   useEffect(() => {
     if (!cardRef.current) return;
     const measure = () => {
@@ -92,6 +91,7 @@ export default function Login() {
     try {
       const res = await axios.post('https://campus-go-f21t.onrender.com/api/auth/login', { email, password });
       localStorage.setItem('campusgo_user', JSON.stringify(res.data));
+      localStorage.setItem('campusgo_login_time', Date.now().toString()); // 2hr session clock starts here
       const role = res.data.role;
       if (role === 'platform_admin') window.location.href = '/admin';
       else if (role === 'student') window.location.href = '/student';
@@ -140,18 +140,13 @@ export default function Login() {
           preserveAspectRatio="none"
           style={{ '--perimeter': perimeter }}
         >
-          {/* Faint full outline */}
           <path d={d} fill="none" stroke="rgba(45,190,96,0.15)" strokeWidth="1.5" />
-
-          {/* Line 1 */}
           <path
             d={d}
             className="trace-line"
             strokeDasharray={`${lineLen} ${gap}`}
             strokeDashoffset={perimeter}
           />
-
-          {/* Line 2 — offset by half the perimeter so it's always opposite */}
           <path
             d={d}
             className="trace-line trace-line-2"
