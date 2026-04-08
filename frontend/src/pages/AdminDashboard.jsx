@@ -5,8 +5,7 @@ import {
   TableContainer, TableHead, TableRow, Paper, Button, TextField,
   Dialog, DialogTitle, DialogContent, DialogActions,
   Chip, Alert, Snackbar, Tabs, Tab, Tooltip,
-  MenuItem, Select, FormControl, InputLabel, List, ListItem,
-  ListItemText, IconButton, Divider
+  MenuItem, Select, FormControl, InputLabel
 } from '@mui/material';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip,
@@ -31,13 +30,6 @@ import AttachMoneyIcon from '@mui/icons-material/AttachMoney';
 import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 import FiberManualRecordIcon from '@mui/icons-material/FiberManualRecord';
 import DirectionsBusIcon from '@mui/icons-material/DirectionsBus';
-import NotificationsIcon from '@mui/icons-material/Notifications';
-import DeleteIcon from '@mui/icons-material/Delete';
-import CampaignIcon from '@mui/icons-material/Campaign';
-import InfoIcon from '@mui/icons-material/Info';
-import ErrorIcon from '@mui/icons-material/Error';
-import CancelIcon from '@mui/icons-material/Cancel';
-import EditRoadIcon from '@mui/icons-material/EditRoad';
 import CampusGoHeader from './CampusGoHeader';
 
 delete L.Icon.Default.prototype._getIconUrl;
@@ -81,44 +73,6 @@ const statusColors = {
   suspended: { bg: '#f44336', color: '#fff', label: 'Suspended' },
 };
 
-const notifTypeConfig = {
-  info:    { icon: <InfoIcon sx={{ fontSize: 16, color: '#1976d2' }} />,    label: 'Info',    bg: '#e3f2fd', border: '#1976d2', chip: '#1976d2' },
-  warning: { icon: <WarningAmberIcon sx={{ fontSize: 16, color: '#ff9800' }} />, label: 'Warning', bg: '#fff8e1', border: '#ff9800', chip: '#ff9800' },
-  error:   { icon: <ErrorIcon sx={{ fontSize: 16, color: '#f44336' }} />,   label: 'Urgent',  bg: '#fdecea', border: '#f44336', chip: '#f44336' },
-};
-
-// Preset cards config — icons instead of emojis
-const notifPresets = [
-  {
-    label: 'Bus Delay',
-    icon: <DirectionsBusIcon sx={{ fontSize: 20, color: '#ff9800' }} />,
-    title: 'Bus Delay Notice',
-    message: 'Some buses are currently delayed. Please allow extra travel time.',
-    type: 'warning',
-  },
-  {
-    label: 'Route Change',
-    icon: <EditRoadIcon sx={{ fontSize: 20, color: '#ff9800' }} />,
-    title: 'Temporary Route Change',
-    message: 'A route has been temporarily modified due to road works. Check the app for details.',
-    type: 'warning',
-  },
-  {
-    label: 'Service Cancelled',
-    icon: <CancelIcon sx={{ fontSize: 20, color: '#f44336' }} />,
-    title: 'Service Cancellation',
-    message: 'Bus service has been cancelled for today. We apologise for the inconvenience.',
-    type: 'error',
-  },
-  {
-    label: 'General Info',
-    icon: <InfoIcon sx={{ fontSize: 20, color: '#1976d2' }} />,
-    title: 'Campus GO Update',
-    message: '',
-    type: 'info',
-  },
-];
-
 export default function AdminDashboard() {
   const [tab, setTab] = useState(0);
   const [students, setStudents] = useState([]);
@@ -139,13 +93,6 @@ export default function AdminDashboard() {
   const [newCompany, setNewCompany] = useState({ name: '', inviteEmail: '' });
   const [createCompanyLoading, setCreateCompanyLoading] = useState(false);
   const [inviteCopied, setInviteCopied] = useState(null);
-
-  // Notification state
-  const [notifications, setNotifications] = useState([]);
-  const [notifDialogOpen, setNotifDialogOpen] = useState(false);
-  const [notifLoading, setNotifLoading] = useState(false);
-  const [newNotif, setNewNotif] = useState({ title: '', message: '', type: 'warning', target_role: 'student' });
-  const [quickAlertBus, setQuickAlertBus] = useState(null);
 
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
   const [lastFleetUpdate, setLastFleetUpdate] = useState(null);
@@ -182,18 +129,10 @@ export default function AdminDashboard() {
       setCompanies(res.data);
     } catch (err) { console.error(err); }
   };
-  const fetchNotifications = async () => {
-    try {
-      const res = await axios.get('https://campus-go-f21t.onrender.com/api/notifications', {
-        headers: { 'x-user-id': user?.id, 'x-user-role': 'admin' }
-      });
-      setNotifications(res.data);
-    } catch (err) { console.error(err); }
-  };
 
   useEffect(() => {
     fetchStudents(); fetchRoutes(); fetchFeedback();
-    fetchAnalytics(); fetchActiveBuses(); fetchCompanies(); fetchNotifications();
+    fetchAnalytics(); fetchActiveBuses(); fetchCompanies();
     const interval = setInterval(fetchActiveBuses, 5000);
     return () => clearInterval(interval);
   }, []);
@@ -278,52 +217,6 @@ export default function AdminDashboard() {
     setTimeout(() => setInviteCopied(null), 2000);
   };
 
-  const handleSendNotification = async () => {
-    if (!newNotif.title || !newNotif.message) return;
-    setNotifLoading(true);
-    try {
-      await axios.post('https://campus-go-f21t.onrender.com/api/notifications', {
-        title: newNotif.title,
-        message: newNotif.message,
-        type: newNotif.type,
-        target_role: newNotif.target_role,
-      }, { headers: { 'x-user-id': user?.id } });
-      setSnackbar({ open: true, message: 'Notification sent to students!', severity: 'success' });
-      setNotifDialogOpen(false);
-      setQuickAlertBus(null);
-      setNewNotif({ title: '', message: '', type: 'warning', target_role: 'student' });
-      fetchNotifications();
-    } catch (err) {
-      setSnackbar({ open: true, message: 'Failed to send notification.', severity: 'error' });
-    }
-    setNotifLoading(false);
-  };
-
-  const handleDeleteNotification = async (id) => {
-    try {
-      await axios.delete(`https://campus-go-f21t.onrender.com/api/notifications/${id}`, {
-        headers: { 'x-user-id': user?.id }
-      });
-      setSnackbar({ open: true, message: 'Notification deleted.', severity: 'success' });
-      fetchNotifications();
-    } catch (err) {
-      setSnackbar({ open: true, message: 'Failed to delete.', severity: 'error' });
-    }
-  };
-
-  const handleQuickDelayAlert = (bus) => {
-    setQuickAlertBus(bus);
-    setNewNotif({
-      title: `Bus Delay — ${bus.route_name}`,
-      message: `The bus on route ${bus.route_name} (${bus.number_plate || 'no plate'}) is currently experiencing a delay. Please check the app for updates.`,
-      type: 'warning',
-      target_role: 'student',
-    });
-    setNotifDialogOpen(true);
-  };
-
-  const handleLogout = () => { localStorage.clear(); window.location.href = '/'; };
-
   return (
     <Box sx={{ minHeight: '100vh', background: '#f9f9f9' }}>
       <CampusGoHeader user={user} role="Platform Admin" />
@@ -362,27 +255,6 @@ export default function AdminDashboard() {
               <Tab label="Feedback" icon={<FeedbackIcon />} iconPosition="start" />
               <Tab label="Analytics" icon={<BarChartIcon />} iconPosition="start" />
               <Tab label="Fleet Monitor" icon={<LocationOnIcon />} iconPosition="start" />
-              <Tab
-                label="Notifications"
-                icon={
-                  <Box sx={{ position: 'relative', display: 'inline-flex' }}>
-                    <NotificationsIcon />
-                    {notifications.length > 0 && (
-                      <Box sx={{
-                        position: 'absolute', top: -4, right: -6,
-                        background: '#f44336', borderRadius: '50%',
-                        width: 16, height: 16, display: 'flex',
-                        alignItems: 'center', justifyContent: 'center',
-                      }}>
-                        <Typography sx={{ color: '#fff', fontSize: 9, fontWeight: 'bold', lineHeight: 1 }}>
-                          {notifications.length > 99 ? '99+' : notifications.length}
-                        </Typography>
-                      </Box>
-                    )}
-                  </Box>
-                }
-                iconPosition="start"
-              />
             </Tabs>
 
             {/* Companies Tab */}
@@ -687,18 +559,6 @@ export default function AdminDashboard() {
                       label={activeBuses.length > 0 ? `${activeBuses.length} bus${activeBuses.length !== 1 ? 'es' : ''} on road` : 'No active buses'}
                       sx={{ background: activeBuses.length > 0 ? '#2DBE60' : '#ccc', color: '#fff', fontWeight: 'bold' }}
                     />
-                    <Button
-                      variant="contained"
-                      startIcon={<CampaignIcon />}
-                      onClick={() => {
-                        setQuickAlertBus(null);
-                        setNewNotif({ title: '', message: '', type: 'warning', target_role: 'student' });
-                        setNotifDialogOpen(true);
-                      }}
-                      sx={{ background: '#ff9800', '&:hover': { background: '#e65100' }, fontWeight: 'bold' }}
-                    >
-                      Send Alert
-                    </Button>
                   </Box>
                 </Box>
 
@@ -758,15 +618,6 @@ export default function AdminDashboard() {
                                 <Typography fontSize={11} color="text.secondary" display="block">
                                   {new Date(bus.updated_at).toLocaleTimeString()}
                                 </Typography>
-                                <Button
-                                  size="small"
-                                  variant="outlined"
-                                  startIcon={<WarningAmberIcon />}
-                                  onClick={() => handleQuickDelayAlert(bus)}
-                                  sx={{ borderColor: '#ff9800', color: '#ff9800', fontSize: 11, '&:hover': { background: '#ff9800', color: '#fff' } }}
-                                >
-                                  Delay Alert
-                                </Button>
                               </Box>
                             </Box>
                           </CardContent>
@@ -783,199 +634,9 @@ export default function AdminDashboard() {
                 )}
               </Box>
             )}
-
-            {/* Notifications Tab */}
-            {tab === 6 && (
-              <Box>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-                  <Box>
-                    <Typography variant="h6" fontWeight="bold">Notifications & Alerts</Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      Send delay alerts and announcements to students
-                    </Typography>
-                  </Box>
-                  <Button
-                    variant="contained"
-                    startIcon={<CampaignIcon />}
-                    onClick={() => {
-                      setQuickAlertBus(null);
-                      setNewNotif({ title: '', message: '', type: 'warning', target_role: 'student' });
-                      setNotifDialogOpen(true);
-                    }}
-                    sx={{ background: '#2DBE60', '&:hover': { background: '#1F1F1F' }, fontWeight: 'bold' }}
-                  >
-                    Send Notification
-                  </Button>
-                </Box>
-
-                {/* Quick-send preset cards */}
-                <Box sx={{ display: 'flex', gap: 2, mb: 4, flexWrap: 'wrap' }}>
-                  {notifPresets.map((preset, i) => (
-                    <Card
-                      key={i}
-                      onClick={() => {
-                        setNewNotif({ title: preset.title, message: preset.message, type: preset.type, target_role: 'student' });
-                        setNotifDialogOpen(true);
-                      }}
-                      sx={{
-                        cursor: 'pointer', borderRadius: 2,
-                        border: `2px solid ${notifTypeConfig[preset.type].border}`,
-                        background: notifTypeConfig[preset.type].bg,
-                        flex: '1 1 180px',
-                        transition: 'transform 0.15s',
-                        '&:hover': { transform: 'scale(1.03)' }
-                      }}
-                    >
-                      <CardContent sx={{ py: 1.5, '&:last-child': { pb: 1.5 } }}>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
-                          {preset.icon}
-                          <Typography fontWeight="bold" fontSize={14}>{preset.label}</Typography>
-                        </Box>
-                        <Typography fontSize={12} color="text.secondary">Click to pre-fill &amp; send</Typography>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </Box>
-
-                {/* Past notifications list */}
-                <Typography variant="subtitle1" fontWeight="bold" mb={1}>
-                  Sent Notifications ({notifications.length})
-                </Typography>
-
-                {notifications.length === 0 ? (
-                  <Box sx={{ textAlign: 'center', py: 6, background: '#f9f9f9', borderRadius: 3, border: '1px dashed #ccc' }}>
-                    <NotificationsIcon sx={{ fontSize: 48, color: '#ccc' }} />
-                    <Typography color="text.secondary" fontWeight="bold" mt={1}>No notifications sent yet</Typography>
-                    <Typography color="text.secondary" fontSize={13}>Use the button above to send your first alert</Typography>
-                  </Box>
-                ) : (
-                  <Paper elevation={0} sx={{ border: '1px solid #eee', borderRadius: 2 }}>
-                    <List disablePadding>
-                      {notifications.map((n, i) => {
-                        const cfg = notifTypeConfig[n.type] || notifTypeConfig.info;
-                        return (
-                          <Box key={n.id}>
-                            <ListItem
-                              sx={{ borderLeft: `4px solid ${cfg.border}`, background: cfg.bg, py: 1.5 }}
-                              secondaryAction={
-                                <Tooltip title="Delete notification">
-                                  <IconButton edge="end" size="small" onClick={() => handleDeleteNotification(n.id)}
-                                    sx={{ color: '#f44336' }}>
-                                    <DeleteIcon fontSize="small" />
-                                  </IconButton>
-                                </Tooltip>
-                              }
-                            >
-                              <ListItemText
-                                primary={
-                                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
-                                    {cfg.icon}
-                                    <Typography fontWeight="bold" fontSize={14}>{n.title}</Typography>
-                                    <Chip
-                                      label={cfg.label}
-                                      size="small"
-                                      sx={{ background: cfg.chip, color: '#fff', fontWeight: 'bold', height: 20, fontSize: 11 }}
-                                    />
-                                    <Chip
-                                      label={n.target_role === 'all' ? 'Everyone' : 'Students'}
-                                      size="small"
-                                      variant="outlined"
-                                      sx={{ height: 20, fontSize: 11 }}
-                                    />
-                                  </Box>
-                                }
-                                secondary={
-                                  <Box>
-                                    <Typography variant="body2" color="text.secondary" mt={0.5}>{n.message}</Typography>
-                                    <Typography variant="caption" color="text.disabled" mt={0.5} display="block">
-                                      {new Date(n.created_at).toLocaleString()}
-                                    </Typography>
-                                  </Box>
-                                }
-                              />
-                            </ListItem>
-                            {i < notifications.length - 1 && <Divider />}
-                          </Box>
-                        );
-                      })}
-                    </List>
-                  </Paper>
-                )}
-              </Box>
-            )}
           </CardContent>
         </Card>
       </Box>
-
-      {/* Send Notification Dialog */}
-      <Dialog open={notifDialogOpen} onClose={() => { setNotifDialogOpen(false); setQuickAlertBus(null); }} maxWidth="sm" fullWidth>
-        <DialogTitle fontWeight="bold">
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <CampaignIcon sx={{ color: '#2DBE60' }} />
-            {quickAlertBus ? `Delay Alert — ${quickAlertBus.route_name}` : 'Send Notification'}
-          </Box>
-        </DialogTitle>
-        <DialogContent>
-          {quickAlertBus && (
-            <Alert severity="warning" sx={{ mb: 2 }}>
-              Pre-filled for <strong>{quickAlertBus.route_name}</strong> ({quickAlertBus.number_plate || 'no plate'}). Edit the message if needed.
-            </Alert>
-          )}
-          <TextField
-            fullWidth label="Title" value={newNotif.title}
-            onChange={e => setNewNotif({ ...newNotif, title: e.target.value })}
-            sx={{ mb: 2, mt: 1 }} autoFocus
-            placeholder="e.g. Bus Delay on Route 5"
-          />
-          <TextField
-            fullWidth label="Message" value={newNotif.message}
-            onChange={e => setNewNotif({ ...newNotif, message: e.target.value })}
-            multiline rows={3} sx={{ mb: 2 }}
-            placeholder="Describe the delay or announcement..."
-          />
-          <Box sx={{ display: 'flex', gap: 2 }}>
-            <FormControl fullWidth sx={{ mb: 1 }}>
-              <InputLabel>Type</InputLabel>
-              <Select value={newNotif.type} label="Type" onChange={e => setNewNotif({ ...newNotif, type: e.target.value })}>
-                <MenuItem value="info">
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <InfoIcon sx={{ fontSize: 18, color: '#1976d2' }} /> Info
-                  </Box>
-                </MenuItem>
-                <MenuItem value="warning">
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <WarningAmberIcon sx={{ fontSize: 18, color: '#ff9800' }} /> Warning
-                  </Box>
-                </MenuItem>
-                <MenuItem value="error">
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <ErrorIcon sx={{ fontSize: 18, color: '#f44336' }} /> Urgent
-                  </Box>
-                </MenuItem>
-              </Select>
-            </FormControl>
-            <FormControl fullWidth sx={{ mb: 1 }}>
-              <InputLabel>Send To</InputLabel>
-              <Select value={newNotif.target_role} label="Send To" onChange={e => setNewNotif({ ...newNotif, target_role: e.target.value })}>
-                <MenuItem value="student">Students only</MenuItem>
-                <MenuItem value="all">Everyone</MenuItem>
-              </Select>
-            </FormControl>
-          </Box>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => { setNotifDialogOpen(false); setQuickAlertBus(null); }}>Cancel</Button>
-          <Button
-            variant="contained"
-            startIcon={<SendIcon />}
-            onClick={handleSendNotification}
-            disabled={!newNotif.title || !newNotif.message || notifLoading}
-            sx={{ background: '#2DBE60', '&:hover': { background: '#1F1F1F' } }}
-          >
-            {notifLoading ? 'Sending...' : 'Send Notification'}
-          </Button>
-        </DialogActions>
-      </Dialog>
 
       {/* Create Company Dialog */}
       <Dialog open={createCompanyDialog} onClose={() => setCreateCompanyDialog(false)} maxWidth="xs" fullWidth>
