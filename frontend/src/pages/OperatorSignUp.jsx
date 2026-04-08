@@ -2,11 +2,12 @@ import { useState } from 'react';
 import axios from 'axios';
 import {
   Box, Card, CardContent, TextField, Button, Typography, Alert,
-  Stepper, Step, StepLabel, IconButton
+  Stepper, Step, StepLabel, IconButton, LinearProgress
 } from '@mui/material';
 import DirectionsBusIcon from '@mui/icons-material/DirectionsBus';
 import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline';
 import RemoveCircleOutlineIcon from '@mui/icons-material/RemoveCircleOutline';
+import { validatePassword, getPasswordStrength } from '../utils/passwordValidator';
 
 const steps = ['Company Details', 'Bus Registration', 'Routes Setup'];
 
@@ -15,23 +16,18 @@ export default function OperatorSignUp() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
-  // Step 1
   const [companyName, setCompanyName] = useState('');
   const [numBuses, setNumBuses] = useState('');
-
-  // Step 2 — plates auto-expand based on numBuses
   const [plates, setPlates] = useState(['']);
-
-  // Step 3
   const [routeNames, setRouteNames] = useState(['']);
-
-  // Operator account
   const [account, setAccount] = useState({ full_name: '', email: '', password: '' });
+
+  const strength = getPasswordStrength(account.password);
+  const passwordErrors = validatePassword(account.password);
 
   const handleNext = () => {
     if (activeStep === 0) {
       if (!companyName || !numBuses) return setError('Please fill in all fields');
-      // Auto-set number of plate fields based on numBuses
       const count = parseInt(numBuses);
       if (count > 0) setPlates(Array(count).fill(''));
     }
@@ -44,9 +40,8 @@ export default function OperatorSignUp() {
   const handleSubmit = async () => {
     if (!account.full_name || !account.email || !account.password)
       return setError('Please fill in all account fields');
-    if (account.password.length < 6)
-      return setError('Password must be at least 6 characters');
-
+    const errors = validatePassword(account.password);
+    if (errors.length > 0) return setError('Password must include: ' + errors.join(', ').toLowerCase() + '.');
     try {
       await axios.post('https://campus-go-f21t.onrender.com/api/auth/register', {
         full_name: account.full_name,
@@ -75,11 +70,7 @@ export default function OperatorSignUp() {
           </Box>
 
           <Stepper activeStep={activeStep} sx={{ mb: 4 }}>
-            {steps.map(label => (
-              <Step key={label}>
-                <StepLabel>{label}</StepLabel>
-              </Step>
-            ))}
+            {steps.map(label => <Step key={label}><StepLabel>{label}</StepLabel></Step>)}
           </Stepper>
 
           {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
@@ -170,9 +161,7 @@ export default function OperatorSignUp() {
                 Add another route
               </Button>
 
-              <Typography variant="subtitle2" fontWeight="bold" sx={{ mb: 1, mt: 1 }}>
-                Your Admin Account
-              </Typography>
+              <Typography variant="subtitle2" fontWeight="bold" sx={{ mb: 1, mt: 1 }}>Your Admin Account</Typography>
               <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
                 This is the account you'll use to manage everything.
               </Typography>
@@ -181,7 +170,25 @@ export default function OperatorSignUp() {
               <TextField fullWidth label="Email" type="email" value={account.email}
                 onChange={e => setAccount({ ...account, email: e.target.value })} sx={{ mb: 2 }} />
               <TextField fullWidth label="Password" type="password" value={account.password}
-                onChange={e => setAccount({ ...account, password: e.target.value })} sx={{ mb: 3 }} />
+                onChange={e => setAccount({ ...account, password: e.target.value })} sx={{ mb: 1 }} />
+
+              {account.password.length > 0 && (
+                <Box sx={{ mb: 3 }}>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
+                    <Typography variant="caption" color="text.secondary">Password strength</Typography>
+                    <Typography variant="caption" fontWeight="bold" sx={{ color: strength.color }}>{strength.label}</Typography>
+                  </Box>
+                  <LinearProgress variant="determinate" value={strength.value} sx={{
+                    height: 6, borderRadius: 3, backgroundColor: '#e0e0e0',
+                    '& .MuiLinearProgress-bar': { backgroundColor: strength.color, borderRadius: 3 }
+                  }} />
+                  {passwordErrors.length > 0 && (
+                    <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: 'block' }}>
+                      Missing: {passwordErrors.join(' · ')}
+                    </Typography>
+                  )}
+                </Box>
+              )}
 
               <Box sx={{ display: 'flex', gap: 2 }}>
                 <Button fullWidth variant="outlined" onClick={() => setActiveStep(1)}

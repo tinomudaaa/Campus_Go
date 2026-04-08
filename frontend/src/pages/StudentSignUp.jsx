@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import axios from 'axios';
-import { Box, Card, CardContent, TextField, Button, Typography, Alert } from '@mui/material';
+import { Box, Card, CardContent, TextField, Button, Typography, Alert, LinearProgress } from '@mui/material';
 import DirectionsBusIcon from '@mui/icons-material/DirectionsBus';
+import { validatePassword, getPasswordStrength } from '../utils/passwordValidator';
 
 export default function StudentSignUp() {
   const [form, setForm] = useState({ full_name: '', surname: '', student_id: '', email: '', password: '' });
@@ -10,8 +11,14 @@ export default function StudentSignUp() {
 
   const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
 
+  const strength = getPasswordStrength(form.password);
+  const passwordErrors = validatePassword(form.password);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setError('');
+    const errors = validatePassword(form.password);
+    if (errors.length > 0) return setError('Password must include: ' + errors.join(', ').toLowerCase() + '.');
     try {
       await axios.post('https://campus-go-f21t.onrender.com/api/auth/register', {
         full_name: `${form.full_name} ${form.surname}`,
@@ -45,7 +52,27 @@ export default function StudentSignUp() {
             </Box>
             <TextField fullWidth label="School ID" name="student_id" value={form.student_id} onChange={handleChange} sx={{ mb: 2 }} required />
             <TextField fullWidth label="Email" type="email" name="email" value={form.email} onChange={handleChange} sx={{ mb: 2 }} required />
-            <TextField fullWidth label="Password" type="password" name="password" value={form.password} onChange={handleChange} sx={{ mb: 3 }} required />
+            <TextField
+              fullWidth label="Password" type="password" name="password"
+              value={form.password} onChange={handleChange} sx={{ mb: 1 }} required
+            />
+            {form.password.length > 0 && (
+              <Box sx={{ mb: 2 }}>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
+                  <Typography variant="caption" color="text.secondary">Password strength</Typography>
+                  <Typography variant="caption" fontWeight="bold" sx={{ color: strength.color }}>{strength.label}</Typography>
+                </Box>
+                <LinearProgress variant="determinate" value={strength.value} sx={{
+                  height: 6, borderRadius: 3, backgroundColor: '#e0e0e0',
+                  '& .MuiLinearProgress-bar': { backgroundColor: strength.color, borderRadius: 3 }
+                }} />
+                {passwordErrors.length > 0 && (
+                  <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: 'block' }}>
+                    Missing: {passwordErrors.join(' · ')}
+                  </Typography>
+                )}
+              </Box>
+            )}
             <Button fullWidth type="submit" variant="contained"
               sx={{ py: 1.5, background: '#2DBE60', borderRadius: 2, fontSize: 16, fontWeight: 'bold', '&:hover': { background: '#1F1F1F' } }}>
               Create Profile

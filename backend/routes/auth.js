@@ -3,11 +3,25 @@ const router = express.Router();
 const pool = require('../db');
 const bcrypt = require('bcrypt');
 
+// Shared password validator (mirrors frontend rules)
+function validatePassword(password) {
+  const errors = [];
+  if (!password || password.length < 8) errors.push('at least 8 characters');
+  if (!/[A-Z]/.test(password)) errors.push('one uppercase letter');
+  if (!/[0-9]/.test(password)) errors.push('one number');
+  if (!/[^A-Za-z0-9]/.test(password)) errors.push('one special character');
+  return errors;
+}
+
 router.post('/register', async (req, res) => {
   try {
     const { full_name, email, password, role } = req.body;
     if (role !== 'student') {
       return res.status(400).json({ error: 'Operator accounts are created via invite only' });
+    }
+    const pwErrors = validatePassword(password);
+    if (pwErrors.length > 0) {
+      return res.status(400).json({ error: 'Password must include: ' + pwErrors.join(', ') + '.' });
     }
     const hashedPassword = await bcrypt.hash(password, 10);
     const userResult = await pool.query(
@@ -27,6 +41,10 @@ router.post('/accept-invite', async (req, res) => {
     const { token, full_name, password } = req.body;
     if (!token || !full_name || !password) {
       return res.status(400).json({ error: 'Token, name, and password required' });
+    }
+    const pwErrors = validatePassword(password);
+    if (pwErrors.length > 0) {
+      return res.status(400).json({ error: 'Password must include: ' + pwErrors.join(', ') + '.' });
     }
     const inviteResult = await pool.query(
       "SELECT * FROM invites WHERE token = $1 AND status = 'pending'",

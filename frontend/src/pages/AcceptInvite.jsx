@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import axios from 'axios';
-import { Box, Card, CardContent, TextField, Button, Typography, Alert, CircularProgress } from '@mui/material';
+import { Box, Card, CardContent, TextField, Button, Typography, Alert, CircularProgress, LinearProgress } from '@mui/material';
 import DirectionsBusIcon from '@mui/icons-material/DirectionsBus';
+import { validatePassword, getPasswordStrength } from '../utils/passwordValidator';
 
 export default function AcceptInvite() {
   const { token } = useParams();
@@ -15,6 +16,9 @@ export default function AcceptInvite() {
   const [confirm, setConfirm] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
+  const strength = getPasswordStrength(password);
+  const passwordErrors = validatePassword(password);
+
   useEffect(() => {
     axios.get(`https://campus-go-f21t.onrender.com/api/auth/invite/${token}`)
       .then(res => { setInvite(res.data); setLoading(false); })
@@ -23,10 +27,11 @@ export default function AcceptInvite() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (password !== confirm) return setError('Passwords do not match');
-    if (password.length < 6) return setError('Password must be at least 6 characters');
-    setSubmitting(true);
     setError('');
+    const errors = validatePassword(password);
+    if (errors.length > 0) return setError('Password must include: ' + errors.join(', ').toLowerCase() + '.');
+    if (password !== confirm) return setError('Passwords do not match');
+    setSubmitting(true);
     try {
       await axios.post('https://campus-go-f21t.onrender.com/api/auth/accept-invite', { token, full_name: fullName, password });
       setSuccess(true);
@@ -37,7 +42,6 @@ export default function AcceptInvite() {
     }
   };
 
-  // Human-readable role label
   const roleLabel = invite?.role === 'operator_staff' ? 'Operator Staff (Driver)' : 'Operator Admin';
 
   return (
@@ -54,9 +58,7 @@ export default function AcceptInvite() {
 
           {loading && <Box sx={{ textAlign: 'center' }}><CircularProgress color="success" /></Box>}
 
-          {!loading && error && !invite && (
-            <Alert severity="error">{error}</Alert>
-          )}
+          {!loading && error && !invite && <Alert severity="error">{error}</Alert>}
 
           {!loading && success && (
             <Box sx={{ textAlign: 'center' }}>
@@ -82,7 +84,26 @@ export default function AcceptInvite() {
                 <TextField fullWidth label="Your Full Name" value={fullName}
                   onChange={e => setFullName(e.target.value)} sx={{ mb: 2 }} required />
                 <TextField fullWidth label="Password" type="password" value={password}
-                  onChange={e => setPassword(e.target.value)} sx={{ mb: 2 }} required />
+                  onChange={e => setPassword(e.target.value)} sx={{ mb: 1 }} required />
+
+                {password.length > 0 && (
+                  <Box sx={{ mb: 2 }}>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
+                      <Typography variant="caption" color="text.secondary">Password strength</Typography>
+                      <Typography variant="caption" fontWeight="bold" sx={{ color: strength.color }}>{strength.label}</Typography>
+                    </Box>
+                    <LinearProgress variant="determinate" value={strength.value} sx={{
+                      height: 6, borderRadius: 3, backgroundColor: '#e0e0e0',
+                      '& .MuiLinearProgress-bar': { backgroundColor: strength.color, borderRadius: 3 }
+                    }} />
+                    {passwordErrors.length > 0 && (
+                      <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: 'block' }}>
+                        Missing: {passwordErrors.join(' · ')}
+                      </Typography>
+                    )}
+                  </Box>
+                )}
+
                 <TextField fullWidth label="Confirm Password" type="password" value={confirm}
                   onChange={e => setConfirm(e.target.value)} sx={{ mb: 3 }} required />
                 <Button fullWidth type="submit" variant="contained" disabled={submitting}
