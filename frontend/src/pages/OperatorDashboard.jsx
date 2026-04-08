@@ -46,6 +46,13 @@ const ALERT_PRESETS = [
     getMessage: (plate, route) =>
       `The trip for bus ${plate} on the ${route} route has been cancelled. We apologise for the inconvenience.`,
   },
+  {
+    label: 'Bus Departing',
+    icon: <PlayCircleIcon fontSize="small" />,
+    type: 'info',
+    getMessage: (plate, route) =>
+      `Bus ${plate} on the ${route} route is now departing. Please make your way to the stop.`,
+  },
 ];
 
 export default function OperatorDashboard() {
@@ -318,41 +325,39 @@ export default function OperatorDashboard() {
           </CardContent>
         </Card>
 
-        {/* Send Alert (only visible during active trip) */}
-        {tripActive && (
-          <Card sx={{ borderRadius: 3, mb: 4, border: '1px solid #ff980033', borderLeft: '4px solid #ff9800' }}>
-            <CardContent>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
-                <NotificationsIcon sx={{ color: '#ff9800' }} />
-                <Typography variant="h6" fontWeight="bold">Send Alert to Students</Typography>
-              </Box>
-              <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                Notify students about delays or changes on your current trip.
-              </Typography>
-              <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
-                {ALERT_PRESETS.map((preset, i) => (
-                  <Button
-                    key={i}
-                    variant="outlined"
-                    startIcon={preset.icon}
-                    onClick={() => openAlertDialog(preset)}
-                    sx={{
-                      borderColor: preset.type === 'urgent' ? '#f44336' : preset.type === 'warning' ? '#ff9800' : '#2196f3',
-                      color: preset.type === 'urgent' ? '#f44336' : preset.type === 'warning' ? '#ff9800' : '#2196f3',
-                      fontWeight: 'bold',
-                      '&:hover': {
-                        background: preset.type === 'urgent' ? '#f44336' : preset.type === 'warning' ? '#ff9800' : '#2196f3',
-                        borderColor: 'transparent',
-                        color: '#fff',
-                      }
-                    }}>
-                    {preset.label}
-                  </Button>
-                ))}
-              </Box>
-            </CardContent>
-          </Card>
-        )}
+        {/* Send Alert — always visible */}
+        <Card sx={{ borderRadius: 3, mb: 4, border: '1px solid #ff980033', borderLeft: '4px solid #ff9800' }}>
+          <CardContent>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+              <NotificationsIcon sx={{ color: '#ff9800' }} />
+              <Typography variant="h6" fontWeight="bold">Send Alert to Students</Typography>
+            </Box>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+              Notify students about delays or changes.
+            </Typography>
+            <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
+              {ALERT_PRESETS.map((preset, i) => (
+                <Button
+                  key={i}
+                  variant="outlined"
+                  startIcon={preset.icon}
+                  onClick={() => openAlertDialog(preset)}
+                  sx={{
+                    borderColor: preset.type === 'urgent' ? '#f44336' : preset.type === 'warning' ? '#ff9800' : '#2196f3',
+                    color: preset.type === 'urgent' ? '#f44336' : preset.type === 'warning' ? '#ff9800' : '#2196f3',
+                    fontWeight: 'bold',
+                    '&:hover': {
+                      background: preset.type === 'urgent' ? '#f44336' : preset.type === 'warning' ? '#ff9800' : '#2196f3',
+                      borderColor: 'transparent',
+                      color: '#fff',
+                    }
+                  }}>
+                  {preset.label}
+                </Button>
+              ))}
+            </Box>
+          </CardContent>
+        </Card>
 
         {/* QR Scanner */}
         <Card sx={{ borderRadius: 3, mb: 4 }}>
