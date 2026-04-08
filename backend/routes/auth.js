@@ -13,25 +13,58 @@ function validatePassword(password) {
   return errors;
 }
 
+// Delete notifications older than 24 hours (runs on every login)
+async function cleanupOldNotifications() {
+  try {
+    await pool.query(`
+      DELETE FROM notifications
+      WHERE created_at < NOW() - INTERVAL '24 hours'
+    `);
+  } catch (err) {
+    console.error('Notification cleanup error:', err.message);
+  }
+}
+
 router.post('/register', async (req, res) => {
   try {
-    const { full_name, email, password, role } = req.body;
+    const { full_name, email, password, role, student_id } = req.body;
+
     if (role !== 'student') {
       return res.status(400).json({ error: 'Operator accounts are created via invite only' });
     }
+
+    // Check for duplicate email
+    const emailCheck = await pool.query('SELECT id FROM users WHERE LOWER(email) = LOWER($1)', [email]);
+    if (emailCheck.rows.length > 0) {
+      return res.status(400).json({ error: 'An account with this email already exists' });
+    }
+
+    // Check for duplicate student ID
+    if (student_id) {
+      const studentIdCheck = await pool.query('SELECT id FROM users WHERE student_id = $1', [student_id]);
+      if (studentIdCheck.rows.length > 0) {
+        return res.status(400).json({ error: 'This Student ID is already registered' });
+      }
+    }
+
     const pwErrors = validatePassword(password);
     if (pwErrors.length > 0) {
       return res.status(400).json({ error: 'Password must include: ' + pwErrors.join(', ') + '.' });
     }
+
     const hashedPassword = await bcrypt.hash(password, 10);
     const userResult = await pool.query(
       'INSERT INTO users (full_name, email, password, role, student_id) VALUES ($1, $2, $3, $4, $5) RETURNING id',
-      [full_name, email, hashedPassword, 'student', req.body.student_id]
+      [full_name, email, hashedPassword, 'student', student_id || null]
     );
     await pool.query('INSERT INTO wallets (user_id, balance) VALUES ($1, 0)', [userResult.rows[0].id]);
     return res.json({ message: 'Student registered successfully' });
   } catch (err) {
-    if (err.code === '23505') return res.status(400).json({ error: 'Email already exists' });
+    if (err.code === '23505') {
+      if (err.detail?.includes('email')) return res.status(400).json({ error: 'An account with this email already exists' });
+      if (err.detail?.includes('student_id')) return res.status(400).json({ error: 'This Student ID is already registered' });
+      return res.status(400).json({ error: 'Account already exists' });
+    }
     res.status(500).json({ error: err.message });
   }
 });
@@ -54,7 +87,7 @@ router.post('/accept-invite', async (req, res) => {
       return res.status(400).json({ error: 'Invalid or expired invite' });
     }
     const invite = inviteResult.rows[0];
-    const existing = await pool.query('SELECT id FROM users WHERE email = $1', [invite.email]);
+    const existing = await pool.query('SELECT id FROM users WHERE LOWER(email) = LOWER($1)', [invite.email]);
     if (existing.rows.length > 0) {
       return res.status(400).json({ error: 'An account with this email already exists' });
     }
@@ -91,11 +124,12 @@ router.get('/invite/:token', async (req, res) => {
 router.post('/login', async (req, res) => {
   try {
     const { email, password } = req.body;
-    const result = await pool.query('SELECT * FROM users WHERE email = $1', [email]);
+    const result = await pool.query('SELECT * FROM users WHERE LOWER(email) = LOWER($1)', [email]);
     if (result.rows.length === 0) return res.status(401).json({ error: 'Invalid credentials' });
     const user = result.rows[0];
     const match = await bcrypt.compare(password, user.password);
     if (!match) return res.status(401).json({ error: 'Invalid credentials' });
+
     if (user.role === 'operator_admin' || user.role === 'operator_staff') {
       if (user.company_id) {
         const companyResult = await pool.query('SELECT status FROM companies WHERE id = $1', [user.company_id]);
@@ -110,7 +144,12 @@ router.post('/login', async (req, res) => {
         }
       }
     }
+
     await pool.query('UPDATE users SET last_login_at = NOW() WHERE id = $1', [user.id]);
+
+    // Clean up notifications older than 24 hours on every login
+    await cleanupOldNotifications();
+
     const { password: _, ...safeUser } = user;
     res.json(safeUser);
   } catch (err) {
