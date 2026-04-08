@@ -99,7 +99,7 @@ export default function AdminDashboard() {
   const [user] = useState(() => JSON.parse(localStorage.getItem('campusgo_user')));
 
   const fetchStudents = async () => {
-    try { const res = await axios.get('https://campus-go-f21t.onrender.com/api/students'); setStudents(res.data); }
+    try { const res = await axios.get('https://campus-go-f21t.onrender.com/api/wallet/students'); setStudents(res.data); }
     catch (err) { console.error(err); }
   };
   const fetchRoutes = async () => {
