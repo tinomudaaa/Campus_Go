@@ -78,6 +78,7 @@ export default function OperatorDashboard() {
   const plateRef = useRef('');
   const selectedRouteIdRef = useRef('');
   const selectedRouteNameRef = useRef('');
+  const sessionIdRef = useRef(null); // tracks current trip session
   const scannerRef = useRef(null);
   const user = JSON.parse(localStorage.getItem('campusgo_user'));
 
@@ -94,8 +95,54 @@ export default function OperatorDashboard() {
     } catch (err) { console.error(err); }
   };
 
+  // On mount: check if operator has an active session (handles refresh)
+  const restoreSession = async () => {
+    try {
+      const res = await axios.get(`${API}/api/locations/active-session/${user.id}`);
+      const session = res.data;
+      if (!session) return;
+
+      // Restore session state
+      sessionIdRef.current = session.id;
+      plateRef.current = session.number_plate;
+      selectedRouteIdRef.current = session.route_id;
+      selectedRouteNameRef.current = session.route_name;
+      setSelectedPlate(session.number_plate);
+      setSelectedRouteId(String(session.route_id));
+      setTripActive(true);
+
+      // Reload scanned tickets for this session
+      const ticketsRes = await axios.get(`${API}/api/tickets/session/${session.id}`);
+      setScannedTickets(ticketsRes.data);
+
+      // Resume location tracking
+      watchIdRef.current = setInterval(() => {
+        navigator.geolocation.getCurrentPosition(
+          async (pos) => {
+            try {
+              await axios.post(`${API}/api/locations/update`, {
+                operator_id: user.id,
+                latitude: pos.coords.latitude,
+                longitude: pos.coords.longitude,
+                route_id: selectedRouteIdRef.current,
+                number_plate: plateRef.current,
+              });
+            } catch (err) { console.error(err); }
+          },
+          (err) => console.error('GPS error:', err),
+          { enableHighAccuracy: true, maximumAge: 3000 }
+        );
+      }, 5000);
+
+      setSnackbar({ open: true, message: `Trip restored — Bus ${session.number_plate}`, severity: 'info' });
+    } catch (err) {
+      console.error('Session restore error:', err);
+    }
+  };
+
   useEffect(() => {
     fetchCompanyData();
+    restoreSession();
     const interval = setInterval(() => {
       axios.get(`${API}/api/locations/active`)
         .then(res => setActivePlates(res.data.map(b => b.number_plate).filter(Boolean)))
@@ -117,7 +164,9 @@ export default function OperatorDashboard() {
         const cameras = await Html5Qrcode.getCameras();
         if (!cameras || cameras.length === 0) { setCameraError('No camera found on this device.'); return; }
         const backCamera = cameras.find(c =>
-          c.label.toLowerCase().includes('back') || c.label.toLowerCase().includes('rear') || c.label.toLowerCase().includes('environment')
+          c.label.toLowerCase().includes('back') ||
+          c.label.toLowerCase().includes('rear') ||
+          c.label.toLowerCase().includes('environment')
         ) || cameras[cameras.length - 1];
         await html5QrCode.start(
           backCamera.id,
@@ -152,7 +201,11 @@ export default function OperatorDashboard() {
   const validateTicket = async (code) => {
     if (!code?.trim()) return;
     try {
-      const res = await axios.post(`${API}/api/tickets/scan`, { qr_code: code.trim() });
+      const res = await axios.post(`${API}/api/tickets/scan`, {
+        qr_code: code.trim(),
+        session_id: sessionIdRef.current,
+        operator_id: user.id,
+      });
       setScannedTickets(prev => [res.data, ...prev]);
       setSnackbar({ open: true, message: 'Ticket validated successfully!', severity: 'success' });
       setQrInput('');
@@ -173,16 +226,31 @@ export default function OperatorDashboard() {
     });
   };
 
-  const startTrip = () => {
+  const startTrip = async () => {
     if (!selectedRouteId) return setSnackbar({ open: true, message: 'Please select a route first.', severity: 'error' });
     if (!selectedPlate) return setSnackbar({ open: true, message: 'Please select a bus plate.', severity: 'error' });
+
     const routeName = routes.find(r => String(r.id) === String(selectedRouteId))?.name || '';
     plateRef.current = selectedPlate;
     selectedRouteIdRef.current = selectedRouteId;
     selectedRouteNameRef.current = routeName;
+
+    try {
+      // Create trip session in DB
+      const sessionRes = await axios.post(`${API}/api/locations/start-session`, {
+        operator_id: user.id,
+        route_id: selectedRouteId,
+        number_plate: selectedPlate,
+      });
+      sessionIdRef.current = sessionRes.data.id;
+    } catch (err) {
+      console.error('Failed to create session:', err);
+    }
+
     navigator.geolocation.getCurrentPosition(
       (initialPos) => {
         setTripActive(true);
+        setScannedTickets([]); // fresh list for new trip
         sendLocation(initialPos.coords.latitude, initialPos.coords.longitude);
         watchIdRef.current = setInterval(() => {
           navigator.geolocation.getCurrentPosition(
@@ -203,6 +271,14 @@ export default function OperatorDashboard() {
   const stopTrip = async () => {
     setTripActive(false);
     if (watchIdRef.current) { clearInterval(watchIdRef.current); watchIdRef.current = null; }
+
+    // End session in DB
+    if (sessionIdRef.current) {
+      try { await axios.post(`${API}/api/locations/end-session/${sessionIdRef.current}`); }
+      catch (err) { console.error('Failed to end session:', err); }
+      sessionIdRef.current = null;
+    }
+
     try {
       await axios.delete(`${API}/api/locations/stop/${user.id}`);
       setSnackbar({ open: true, message: 'Trip ended.', severity: 'info' });
@@ -249,7 +325,7 @@ export default function OperatorDashboard() {
         <Box sx={{ display: 'flex', gap: 3, mb: 4 }}>
           <Card sx={{ flex: 1, borderRadius: 3, borderLeft: '4px solid #2DBE60' }}>
             <CardContent>
-              <Typography color="text.secondary" variant="body2">Tickets Scanned Today</Typography>
+              <Typography color="text.secondary" variant="body2">Tickets Scanned This Trip</Typography>
               <Typography variant="h4" fontWeight="bold" color="#1F1F1F">{scannedTickets.length}</Typography>
             </CardContent>
           </Card>
@@ -312,8 +388,11 @@ export default function OperatorDashboard() {
                   label={`Active — ${plateRef.current}`}
                   sx={{ background: '#2DBE60', color: '#fff', fontWeight: 'bold', mb: 2, fontSize: 14 }}
                 />
-                <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
                   Bus {plateRef.current} is live — updating every 5 seconds.
+                </Typography>
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+                  Route: <strong>{selectedRouteNameRef.current}</strong>
                 </Typography>
                 <Button fullWidth variant="contained" onClick={stopTrip}
                   startIcon={<StopCircleIcon />}
@@ -397,7 +476,7 @@ export default function OperatorDashboard() {
           <CardContent>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
               <CheckCircleIcon sx={{ color: '#2DBE60' }} />
-              <Typography variant="h6" fontWeight="bold">Scanned Tickets</Typography>
+              <Typography variant="h6" fontWeight="bold">Scanned Tickets This Trip</Typography>
               {scannedTickets.length > 0 && (
                 <Chip label={scannedTickets.length} size="small"
                   sx={{ background: '#2DBE60', color: '#fff', fontWeight: 'bold', ml: 1 }} />
@@ -432,7 +511,7 @@ export default function OperatorDashboard() {
                   {scannedTickets.length === 0 && (
                     <TableRow>
                       <TableCell colSpan={6} align="center" sx={{ py: 4, color: 'text.secondary' }}>
-                        No tickets scanned yet today
+                        {tripActive ? 'No tickets scanned yet this trip' : 'Start a trip to begin scanning tickets'}
                       </TableCell>
                     </TableRow>
                   )}

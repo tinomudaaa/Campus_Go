@@ -4,7 +4,6 @@ const pool = require('../db');
 const QRCode = require('qrcode');
 const crypto = require('crypto');
 
-// Generate a short readable ticket code like CGO-4X7K2
 const generateTicketCode = () => {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
   let code = 'CGO-';
@@ -69,7 +68,7 @@ router.get('/:student_id', async (req, res) => {
 // Scan / validate a ticket
 router.post('/scan', async (req, res) => {
   try {
-    const { qr_code } = req.body;
+    const { qr_code, session_id, operator_id } = req.body;
     if (!qr_code) return res.status(400).json({ error: 'No ticket data provided' });
 
     const isTicketCode = /^CGO-[A-Z0-9]{5}$/.test(qr_code.trim().toUpperCase());
@@ -101,11 +100,31 @@ router.post('/scan', async (req, res) => {
     if (ticket.status === 'expired') return res.status(400).json({ error: 'Ticket has expired' });
 
     const updated = await pool.query(
-      `UPDATE tickets SET status = 'used', scanned_at = NOW() WHERE id = $1 RETURNING *`,
-      [ticket.id]
+      `UPDATE tickets 
+       SET status = 'used', scanned_at = NOW(), session_id = $2, scanned_by = $3
+       WHERE id = $1 RETURNING *`,
+      [ticket.id, session_id || null, operator_id || null]
     );
 
     res.json({ ...updated.rows[0], student_name: ticket.student_name, route_name: ticket.route_name });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Get scanned tickets for a specific session
+router.get('/session/:session_id', async (req, res) => {
+  try {
+    const result = await pool.query(
+      `SELECT tickets.*, users.full_name as student_name, routes.name as route_name
+       FROM tickets
+       LEFT JOIN users ON tickets.user_id = users.id
+       LEFT JOIN routes ON tickets.route_id = routes.id
+       WHERE tickets.session_id = $1
+       ORDER BY tickets.scanned_at DESC`,
+      [req.params.session_id]
+    );
+    res.json(result.rows);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
