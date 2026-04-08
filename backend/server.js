@@ -20,6 +20,7 @@ app.use('/api/operators', require('./routes/operators'));
 app.use('/api/buses', require('./routes/buses'));
 app.use('/api/admin', require('./routes/admin'));
 app.use('/api/operator-admin', require('./routes/operator-admin'));
+app.use('/api/notifications', require('./routes/notifications'));
 
 app.get('/', (req, res) => {
   res.json({ message: 'Campus GO API is running! 🚌' });

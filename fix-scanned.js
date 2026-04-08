@@ -1,0 +1,1 @@
+const pool = require('./db'); pool.query("ALTER TABLE tickets ADD COLUMN IF NOT EXISTS scanned_at TIMESTAMP; ALTER TABLE tickets ADD COLUMN IF NOT EXISTS scanned_by INTEGER").then(r => { console.log('done'); pool.end(); })

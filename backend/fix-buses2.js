@@ -1,0 +1,1 @@
+const pool = require('./db'); pool.query("ALTER TABLE buses ADD COLUMN IF NOT EXISTS plate_number VARCHAR(50); ALTER TABLE buses ADD COLUMN IF NOT EXISTS capacity INTEGER").then(r => { console.log('done'); pool.end(); })
