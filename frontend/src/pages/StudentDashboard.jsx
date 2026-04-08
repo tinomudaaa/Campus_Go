@@ -4,16 +4,15 @@ import {
   Box, Typography, Card, CardContent, Button,
   Chip, Table, TableBody, TableCell, TableContainer, TableHead,
   TableRow, Paper, Dialog, DialogTitle, DialogContent, DialogActions,
-  Alert, Snackbar, TextField
+  Alert, Snackbar, TextField, Badge, List, ListItem, ListItemText, Divider
 } from '@mui/material';
 import ShoppingCartIcon from '@mui/icons-material/ShoppingCart';
 import DirectionsBusIcon from '@mui/icons-material/DirectionsBus';
 import ConfirmationNumberIcon from '@mui/icons-material/ConfirmationNumber';
 import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
+import NotificationsIcon from '@mui/icons-material/Notifications';
 import BusMap from './BusMap';
 import CampusGoHeader from './CampusGoHeader';
-
-
 
 const statStyles = `
   .cgo-stats {
@@ -35,6 +34,8 @@ const statStyles = `
   .cgo-stat-label { font-size: 10px; color: #999; font-weight: 500; margin-top: 2px; text-transform: uppercase; letter-spacing: 0.3px; }
 `;
 
+const API = 'https://campus-go-f21t.onrender.com';
+
 export default function StudentDashboard() {
   const [tickets, setTickets] = useState([]);
   const [routes, setRoutes] = useState([]);
@@ -47,29 +48,56 @@ export default function StudentDashboard() {
   const [feedbackMessage, setFeedbackMessage] = useState('');
   const [buses, setBuses] = useState([]);
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
+  const [notifications, setNotifications] = useState([]);
+  const [notifDialogOpen, setNotifDialogOpen] = useState(false);
 
   const fetchData = async () => {
     try {
-      const routesRes = await axios.get('https://campus-go-f21t.onrender.com/api/routes');
+      const routesRes = await axios.get(`${API}/api/routes`);
       setRoutes(routesRes.data);
     } catch (err) { console.error('Routes error:', err); }
 
     try {
-      const busesRes = await axios.get('https://campus-go-f21t.onrender.com/api/buses');
+      const busesRes = await axios.get(`${API}/api/buses`);
       setBuses(busesRes.data);
     } catch (err) { console.error('Buses error:', err); }
 
     try {
-      const ticketsRes = await axios.get(`https://campus-go-f21t.onrender.com/api/tickets/${user.id}`);
+      const ticketsRes = await axios.get(`${API}/api/tickets/${user.id}`);
       setTickets(ticketsRes.data);
     } catch (err) { console.error('Tickets error:', err); }
   };
 
-  useEffect(() => { fetchData(); }, []);
+  const fetchNotifications = async () => {
+    try {
+      const res = await axios.get(`${API}/api/notifications`, {
+        headers: { 'x-user-id': user.id, 'x-user-role': 'student' }
+      });
+      setNotifications(res.data);
+    } catch (err) { console.error('Notifications error:', err); }
+  };
+
+  useEffect(() => {
+    fetchData();
+    fetchNotifications();
+    const interval = setInterval(fetchNotifications, 30000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const unreadCount = notifications.filter(n => !n.is_read).length;
+
+  const handleOpenNotifications = () => {
+    setNotifDialogOpen(true);
+    notifications.filter(n => !n.is_read).forEach(n => {
+      axios.post(`${API}/api/notifications/${n.id}/read`, {}, {
+        headers: { 'x-user-id': user.id }
+      }).catch(() => {});
+    });
+  };
 
   const handleBuyTicket = async () => {
     try {
-      await axios.post('https://campus-go-f21t.onrender.com/api/tickets/buy', {
+      await axios.post(`${API}/api/tickets/buy`, {
         student_id: user.id,
         route_id: selectedRoute.id,
         bus_id: null
@@ -89,7 +117,7 @@ export default function StudentDashboard() {
 
   const handleFeedback = async () => {
     try {
-      await axios.post('https://campus-go-f21t.onrender.com/api/feedback', {
+      await axios.post(`${API}/api/feedback`, {
         student_id: user.id,
         route_id: feedbackRoute,
         message: feedbackMessage
@@ -111,6 +139,18 @@ export default function StudentDashboard() {
     <Box sx={{ minHeight: '100vh', background: '#f5f7f5' }}>
       <CampusGoHeader user={user} role="Student" showBalance={true} />
       <style>{statStyles}</style>
+
+      {/* Notification Bell */}
+      <Box sx={{ display: 'flex', justifyContent: 'flex-end', px: 2, pt: 1 }}>
+        <Button
+          onClick={handleOpenNotifications}
+          sx={{ minWidth: 0, p: 1, borderRadius: 3, background: '#fff', boxShadow: 1 }}
+        >
+          <Badge badgeContent={unreadCount} color="error">
+            <NotificationsIcon sx={{ color: '#1F1F1F' }} />
+          </Badge>
+        </Button>
+      </Box>
 
       {/* ── STATS ROW ── */}
       <div className="cgo-stats">
@@ -319,6 +359,67 @@ export default function StudentDashboard() {
         </Card>
 
       </Box>
+
+      {/* Notifications Dialog */}
+      <Dialog open={notifDialogOpen} onClose={() => { setNotifDialogOpen(false); fetchNotifications(); }} maxWidth="sm" fullWidth>
+        <DialogTitle fontWeight="bold">
+          🔔 Notifications
+          {unreadCount > 0 && (
+            <Chip label={`${unreadCount} new`} size="small"
+              sx={{ ml: 1, background: '#f44336', color: '#fff', fontWeight: 'bold' }} />
+          )}
+        </DialogTitle>
+        <DialogContent sx={{ p: 0 }}>
+          {notifications.length === 0 ? (
+            <Box sx={{ textAlign: 'center', py: 5 }}>
+              <NotificationsIcon sx={{ fontSize: 48, color: '#ccc', mb: 1 }} />
+              <Typography color="text.secondary">No notifications yet</Typography>
+            </Box>
+          ) : (
+            <List disablePadding>
+              {notifications.map((n, i) => (
+                <Box key={n.id}>
+                  <ListItem sx={{
+                    background: n.is_read ? '#fff' : '#f0fdf4',
+                    borderLeft: n.is_read ? 'none' : '4px solid #2DBE60',
+                    py: 1.5
+                  }}>
+                    <ListItemText
+                      primary={
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                          <Typography fontWeight={n.is_read ? 'normal' : 'bold'} fontSize={14}>
+                            {n.type === 'warning' ? '⚠️' : n.type === 'error' ? '🚨' : 'ℹ️'} {n.title}
+                          </Typography>
+                          {!n.is_read && (
+                            <Chip label="New" size="small"
+                              sx={{ background: '#2DBE60', color: '#fff', height: 18, fontSize: 10 }} />
+                          )}
+                        </Box>
+                      }
+                      secondary={
+                        <Box>
+                          <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>{n.message}</Typography>
+                          <Typography variant="caption" color="text.disabled" sx={{ mt: 0.5, display: 'block' }}>
+                            {new Date(n.created_at).toLocaleString()}
+                          </Typography>
+                        </Box>
+                      }
+                    />
+                  </ListItem>
+                  {i < notifications.length - 1 && <Divider />}
+                </Box>
+              ))}
+            </List>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button fullWidth variant="contained"
+            onClick={() => { setNotifDialogOpen(false); fetchNotifications(); }}
+            sx={{ background: '#2DBE60', '&:hover': { background: '#1F1F1F' } }}>
+            Close
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       {/* Buy Dialog */}
       <Dialog open={buyDialogOpen} onClose={() => setBuyDialogOpen(false)} maxWidth="xs" fullWidth>
