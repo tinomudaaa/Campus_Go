@@ -5,7 +5,7 @@ import {
   Alert, Chip, Tabs, Tab, Table, TableBody, TableCell, TableContainer,
   TableHead, TableRow, Paper, TextField, Dialog, DialogTitle,
   DialogContent, DialogActions, IconButton, Snackbar, Tooltip,
-  MenuItem, Select, FormControl, InputLabel, Avatar
+  MenuItem, Select, FormControl, InputLabel, Avatar, Badge
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import DeleteIcon from '@mui/icons-material/Delete';
@@ -23,7 +23,57 @@ import CheckIcon from '@mui/icons-material/Check';
 import CloseIcon from '@mui/icons-material/Close';
 import ChatBubbleOutlineIcon from '@mui/icons-material/ChatBubbleOutline';
 import DirectionsBusIcon from '@mui/icons-material/DirectionsBus';
+import NotificationsIcon from '@mui/icons-material/Notifications';
+import SendIcon from '@mui/icons-material/Send';
+import WarningAmberIcon from '@mui/icons-material/WarningAmber';
+import InfoIcon from '@mui/icons-material/Info';
+import ErrorIcon from '@mui/icons-material/Error';
+import EditRoadIcon from '@mui/icons-material/EditRoad';
+import CancelIcon from '@mui/icons-material/Cancel';
 import CampusGoHeader from './CampusGoHeader';
+
+const API = 'https://campus-go-f21t.onrender.com';
+
+const PRESETS = [
+  {
+    label: 'Bus Delay',
+    icon: <DirectionsBusIcon />,
+    title: 'Bus Delay',
+    message: 'There is a delay on this route. Please bear with us.',
+    type: 'warning',
+    color: '#ff9800',
+  },
+  {
+    label: 'Route Change',
+    icon: <EditRoadIcon />,
+    title: 'Route Change',
+    message: 'The route has been temporarily changed. Please check for updates.',
+    type: 'info',
+    color: '#2196f3',
+  },
+  {
+    label: 'Service Cancelled',
+    icon: <CancelIcon />,
+    title: 'Service Cancelled',
+    message: 'This trip has been cancelled. We apologise for the inconvenience.',
+    type: 'urgent',
+    color: '#f44336',
+  },
+  {
+    label: 'General Info',
+    icon: <InfoIcon />,
+    title: 'General Announcement',
+    message: '',
+    type: 'info',
+    color: '#2DBE60',
+  },
+];
+
+const typeConfig = {
+  info:    { label: 'Info',    icon: <InfoIcon fontSize="small" />,         color: '#2196f3' },
+  warning: { label: 'Warning', icon: <WarningAmberIcon fontSize="small" />, color: '#ff9800' },
+  urgent:  { label: 'Urgent',  icon: <ErrorIcon fontSize="small" />,        color: '#f44336' },
+};
 
 export default function OperatorAdminDashboard() {
   const [tab, setTab] = useState(0);
@@ -34,6 +84,7 @@ export default function OperatorAdminDashboard() {
   const [analytics, setAnalytics] = useState(null);
   const [feedback, setFeedback] = useState([]);
   const [trips, setTrips] = useState([]);
+  const [notifications, setNotifications] = useState([]);
   const [stats, setStats] = useState({ buses: 0, routes: 0, staff: 0, activeTrips: 0 });
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
 
@@ -48,21 +99,27 @@ export default function OperatorAdminDashboard() {
   const [tripDialog, setTripDialog] = useState(false);
   const [newTrip, setNewTrip] = useState({ route_id: '', bus_id: '', trip_date: '', departure_time: '' });
 
+  // Notification state
+  const [notifForm, setNotifForm] = useState({ title: '', message: '', type: 'info', target_role: 'student' });
+  const [sendingNotif, setSendingNotif] = useState(false);
+  const [delayAlertDialog, setDelayAlertDialog] = useState(false);
+  const [delayAlertBus, setDelayAlertBus] = useState(null);
+
   const user = JSON.parse(localStorage.getItem('campusgo_user'));
   const headers = { 'x-user-id': user?.id, 'x-company-id': user?.company_id };
 
   const fetchAll = async () => {
     try {
       const [busRes, routeRes, staffRes] = await Promise.all([
-        axios.get(`https://campus-go-f21t.onrender.com/api/buses/company/${user?.company_id}`),
-        axios.get(`https://campus-go-f21t.onrender.com/api/operator-admin/routes`, { headers }),
-        axios.get(`https://campus-go-f21t.onrender.com/api/operator-admin/staff`, { headers }),
+        axios.get(`${API}/api/buses/company/${user?.company_id}`),
+        axios.get(`${API}/api/operator-admin/routes`, { headers }),
+        axios.get(`${API}/api/operator-admin/staff`, { headers }),
       ]);
       setBuses(busRes.data); setRoutes(routeRes.data); setStaff(staffRes.data);
       setStats({ buses: busRes.data.length, routes: routeRes.data.length, staff: staffRes.data.filter(s => s.status === 'active').length, activeTrips: 0 });
     } catch (err) { console.error(err); }
     try {
-      const activeRes = await axios.get('https://campus-go-f21t.onrender.com/api/locations/active');
+      const activeRes = await axios.get(`${API}/api/locations/active`);
       setActiveBuses(activeRes.data);
       setStats(prev => ({ ...prev, activeTrips: activeRes.data.length }));
     } catch (err) { console.error('Active buses error:', err); }
@@ -70,29 +127,38 @@ export default function OperatorAdminDashboard() {
 
   const fetchAnalytics = async () => {
     try {
-      const res = await axios.get('https://campus-go-f21t.onrender.com/api/operator-admin/analytics', { headers });
+      const res = await axios.get(`${API}/api/operator-admin/analytics`, { headers });
       setAnalytics(res.data);
     } catch (err) { console.error(err); }
   };
 
   const fetchFeedback = async () => {
     try {
-      const res = await axios.get('https://campus-go-f21t.onrender.com/api/feedback');
+      const res = await axios.get(`${API}/api/feedback`);
       setFeedback(res.data);
     } catch (err) { console.error(err); }
   };
 
   const fetchTrips = async () => {
     try {
-      const res = await axios.get('https://campus-go-f21t.onrender.com/api/operator-admin/trips', { headers });
+      const res = await axios.get(`${API}/api/operator-admin/trips`, { headers });
       setTrips(res.data);
+    } catch (err) { console.error(err); }
+  };
+
+  const fetchNotifications = async () => {
+    try {
+      const res = await axios.get(`${API}/api/notifications`, {
+        headers: { ...headers, 'x-user-role': 'operator_admin' }
+      });
+      setNotifications(res.data);
     } catch (err) { console.error(err); }
   };
 
   useEffect(() => {
     fetchAll();
     const interval = setInterval(() => {
-      axios.get('https://campus-go-f21t.onrender.com/api/locations/active').then(res => setActiveBuses(res.data)).catch(console.error);
+      axios.get(`${API}/api/locations/active`).then(res => setActiveBuses(res.data)).catch(console.error);
     }, 5000);
     return () => clearInterval(interval);
   }, []);
@@ -101,12 +167,13 @@ export default function OperatorAdminDashboard() {
     if (tab === 5) fetchTrips();
     if (tab === 6) fetchAnalytics();
     if (tab === 7) fetchFeedback();
+    if (tab === 8) fetchNotifications();
   }, [tab]);
 
   const handleAddBus = async () => {
     if (!newBus.plate_number.trim()) return;
     try {
-      await axios.post('https://campus-go-f21t.onrender.com/api/buses', {
+      await axios.post(`${API}/api/buses`, {
         company_id: user?.company_id,
         plate_number: newBus.plate_number.trim().toUpperCase(),
         capacity: parseInt(newBus.capacity) || 30,
@@ -120,7 +187,7 @@ export default function OperatorAdminDashboard() {
 
   const handleDeleteBus = async (id) => {
     try {
-      await axios.delete(`https://campus-go-f21t.onrender.com/api/buses/${id}`);
+      await axios.delete(`${API}/api/buses/${id}`);
       setSnackbar({ open: true, message: 'Bus removed.', severity: 'info' }); fetchAll();
     } catch (err) { setSnackbar({ open: true, message: 'Failed to remove bus.', severity: 'error' }); }
   };
@@ -128,7 +195,7 @@ export default function OperatorAdminDashboard() {
   const handleAddRoute = async () => {
     if (!newRoute.name.trim()) return;
     try {
-      await axios.post('https://campus-go-f21t.onrender.com/api/routes', {
+      await axios.post(`${API}/api/routes`, {
         company_id: user?.company_id, name: newRoute.name.trim(),
         origin: newRoute.origin.trim() || 'TBD',
         destination: newRoute.destination.trim() || 'TBD',
@@ -141,7 +208,7 @@ export default function OperatorAdminDashboard() {
 
   const handleDeleteRoute = async (id) => {
     try {
-      await axios.delete(`https://campus-go-f21t.onrender.com/api/routes/${id}`);
+      await axios.delete(`${API}/api/routes/${id}`);
       setSnackbar({ open: true, message: 'Route removed.', severity: 'info' }); fetchAll();
     } catch (err) { setSnackbar({ open: true, message: 'Failed to remove route.', severity: 'error' }); }
   };
@@ -149,7 +216,7 @@ export default function OperatorAdminDashboard() {
   const handleInviteStaff = async () => {
     if (!inviteEmail.trim()) return;
     try {
-      const res = await axios.post('https://campus-go-f21t.onrender.com/api/operator-admin/invite-staff', { email: inviteEmail.trim() }, { headers });
+      const res = await axios.post(`${API}/api/operator-admin/invite-staff`, { email: inviteEmail.trim() }, { headers });
       setInviteLink(res.data.invite_url);
       setStaffDialog(false); setInviteLinkDialog(true); setInviteEmail(''); fetchAll();
     } catch (err) {
@@ -160,7 +227,7 @@ export default function OperatorAdminDashboard() {
   const handleAddTrip = async () => {
     if (!newTrip.route_id || !newTrip.bus_id || !newTrip.trip_date || !newTrip.departure_time) return;
     try {
-      await axios.post('https://campus-go-f21t.onrender.com/api/operator-admin/trips', newTrip, { headers });
+      await axios.post(`${API}/api/operator-admin/trips`, newTrip, { headers });
       setSnackbar({ open: true, message: 'Trip scheduled!', severity: 'success' });
       setTripDialog(false);
       setNewTrip({ route_id: '', bus_id: '', trip_date: '', departure_time: '' });
@@ -172,16 +239,76 @@ export default function OperatorAdminDashboard() {
 
   const handleDeleteTrip = async (id) => {
     try {
-      await axios.delete(`https://campus-go-f21t.onrender.com/api/operator-admin/trips/${id}`, { headers });
+      await axios.delete(`${API}/api/operator-admin/trips/${id}`, { headers });
       setSnackbar({ open: true, message: 'Trip removed.', severity: 'info' }); fetchTrips();
     } catch (err) { setSnackbar({ open: true, message: 'Failed to remove trip.', severity: 'error' }); }
   };
 
   const handleTripStatus = async (id, status) => {
     try {
-      await axios.patch(`https://campus-go-f21t.onrender.com/api/operator-admin/trips/${id}/status`, { status }, { headers });
+      await axios.patch(`${API}/api/operator-admin/trips/${id}/status`, { status }, { headers });
       setSnackbar({ open: true, message: `Trip marked as ${status}.`, severity: 'success' }); fetchTrips();
     } catch (err) { setSnackbar({ open: true, message: 'Failed to update trip.', severity: 'error' }); }
+  };
+
+  const handleSendNotification = async () => {
+    if (!notifForm.title.trim() || !notifForm.message.trim()) return;
+    setSendingNotif(true);
+    try {
+      await axios.post(`${API}/api/notifications`, {
+        ...notifForm,
+        company_id: user?.company_id,
+      }, { headers: { ...headers, 'x-user-role': 'operator_admin' } });
+      setSnackbar({ open: true, message: 'Notification sent!', severity: 'success' });
+      setNotifForm({ title: '', message: '', type: 'info', target_role: 'student' });
+      fetchNotifications();
+    } catch (err) {
+      setSnackbar({ open: true, message: err.response?.data?.error || 'Failed to send notification.', severity: 'error' });
+    } finally { setSendingNotif(false); }
+  };
+
+  const handleDeleteNotification = async (id) => {
+    try {
+      await axios.delete(`${API}/api/notifications/${id}`, { headers });
+      setSnackbar({ open: true, message: 'Notification deleted.', severity: 'info' });
+      fetchNotifications();
+    } catch (err) { setSnackbar({ open: true, message: 'Failed to delete.', severity: 'error' }); }
+  };
+
+  const openDelayAlert = (bus) => {
+    setDelayAlertBus(bus);
+    setNotifForm({
+      title: `Bus Delay — ${bus.route_name || 'Unknown Route'}`,
+      message: `Bus ${bus.number_plate || ''} is currently delayed on the ${bus.route_name || ''} route. We apologise for the inconvenience.`,
+      type: 'warning',
+      target_role: 'student',
+    });
+    setDelayAlertDialog(true);
+  };
+
+  const handleSendDelayAlert = async () => {
+    setSendingNotif(true);
+    try {
+      await axios.post(`${API}/api/notifications`, {
+        ...notifForm,
+        company_id: user?.company_id,
+      }, { headers: { ...headers, 'x-user-role': 'operator_admin' } });
+      setSnackbar({ open: true, message: 'Delay alert sent to students!', severity: 'success' });
+      setDelayAlertDialog(false);
+      setDelayAlertBus(null);
+      fetchNotifications();
+    } catch (err) {
+      setSnackbar({ open: true, message: 'Failed to send alert.', severity: 'error' });
+    } finally { setSendingNotif(false); }
+  };
+
+  const applyPreset = (preset) => {
+    setNotifForm(prev => ({
+      ...prev,
+      title: preset.title,
+      message: preset.message,
+      type: preset.type,
+    }));
   };
 
   const copyLink = (link) => {
@@ -230,6 +357,15 @@ export default function OperatorAdminDashboard() {
           <Tab label="Trips" icon={<EventIcon fontSize="small" />} iconPosition="start" />
           <Tab label="Analytics" icon={<BarChartIcon fontSize="small" />} iconPosition="start" />
           <Tab label="Feedback" icon={<FeedbackIcon fontSize="small" />} iconPosition="start" />
+          <Tab
+            label="Notifications"
+            icon={
+              <Badge badgeContent={notifications.length || null} color="error" max={99}>
+                <NotificationsIcon fontSize="small" />
+              </Badge>
+            }
+            iconPosition="start"
+          />
         </Tabs>
       </Box>
 
@@ -261,7 +397,19 @@ export default function OperatorAdminDashboard() {
                         </Box>
                         <Typography fontSize={13} color="text.secondary">{bus.number_plate || 'No plate'}</Typography>
                       </Box>
-                      <Chip icon={<FiberManualRecordIcon style={{ fontSize: 10 }} />} label="Live" size="small" sx={{ background: '#2DBE60', color: '#fff', fontWeight: 'bold' }} />
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <Chip icon={<FiberManualRecordIcon style={{ fontSize: 10 }} />} label="Live" size="small" sx={{ background: '#2DBE60', color: '#fff', fontWeight: 'bold' }} />
+                        <Tooltip title="Send delay alert for this bus">
+                          <Button
+                            size="small"
+                            variant="outlined"
+                            startIcon={<WarningAmberIcon fontSize="small" />}
+                            onClick={() => openDelayAlert(bus)}
+                            sx={{ borderColor: '#ff9800', color: '#ff9800', fontWeight: 'bold', fontSize: 11, '&:hover': { background: '#ff9800', color: '#fff' } }}>
+                            Delay Alert
+                          </Button>
+                        </Tooltip>
+                      </Box>
                     </Box>
                   ))}
                 </CardContent>
@@ -354,7 +502,19 @@ export default function OperatorAdminDashboard() {
         {/* LIVE TRIPS */}
         {tab === 3 && (
           <Box>
-            <Typography variant="h5" fontWeight="bold" sx={{ mb: 3 }}>Live Trips</Typography>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+              <Typography variant="h5" fontWeight="bold">Live Trips</Typography>
+              <Button
+                variant="outlined"
+                startIcon={<WarningAmberIcon />}
+                onClick={() => {
+                  setNotifForm({ title: 'Service Alert', message: '', type: 'warning', target_role: 'student' });
+                  setTab(8);
+                }}
+                sx={{ borderColor: '#ff9800', color: '#ff9800', fontWeight: 'bold', '&:hover': { background: '#ff9800', color: '#fff' } }}>
+                Send Alert
+              </Button>
+            </Box>
             {activeBuses.length > 0 ? activeBuses.map(bus => {
               const minsAgo = Math.floor((new Date() - new Date(bus.updated_at)) / 60000);
               return (
@@ -369,9 +529,17 @@ export default function OperatorAdminDashboard() {
                         <Typography fontSize={14} color="text.secondary">{bus.number_plate || 'No plate'}</Typography>
                         <Typography fontSize={12} color="text.secondary">{parseFloat(bus.latitude).toFixed(5)}, {parseFloat(bus.longitude).toFixed(5)}</Typography>
                       </Box>
-                      <Box sx={{ textAlign: 'right' }}>
-                        <Chip icon={<FiberManualRecordIcon style={{ fontSize: 10 }} />} label="Live" size="small" sx={{ background: '#2DBE60', color: '#fff', fontWeight: 'bold', mb: 1 }} />
-                        <Typography fontSize={12} color="text.secondary" display="block">Updated {minsAgo === 0 ? 'just now' : `${minsAgo}m ago`}</Typography>
+                      <Box sx={{ textAlign: 'right', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 1 }}>
+                        <Chip icon={<FiberManualRecordIcon style={{ fontSize: 10 }} />} label="Live" size="small" sx={{ background: '#2DBE60', color: '#fff', fontWeight: 'bold' }} />
+                        <Typography fontSize={12} color="text.secondary">Updated {minsAgo === 0 ? 'just now' : `${minsAgo}m ago`}</Typography>
+                        <Button
+                          size="small"
+                          variant="outlined"
+                          startIcon={<WarningAmberIcon fontSize="small" />}
+                          onClick={() => openDelayAlert(bus)}
+                          sx={{ borderColor: '#ff9800', color: '#ff9800', fontWeight: 'bold', fontSize: 11, '&:hover': { background: '#ff9800', color: '#fff' } }}>
+                          Delay Alert
+                        </Button>
                       </Box>
                     </Box>
                   </CardContent>
@@ -594,6 +762,122 @@ export default function OperatorAdminDashboard() {
             )}
           </Box>
         )}
+
+        {/* NOTIFICATIONS */}
+        {tab === 8 && (
+          <Box>
+            <Typography variant="h5" fontWeight="bold" sx={{ mb: 1 }}>Notifications</Typography>
+            <Typography color="text.secondary" sx={{ mb: 3 }}>Send delay alerts and important updates to students.</Typography>
+
+            {/* Quick Presets */}
+            <Typography variant="subtitle2" fontWeight="bold" color="text.secondary" sx={{ mb: 1.5, textTransform: 'uppercase', fontSize: 11, letterSpacing: 0.5 }}>Quick Presets</Typography>
+            <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', mb: 3 }}>
+              {PRESETS.map((preset, i) => (
+                <Card
+                  key={i}
+                  onClick={() => applyPreset(preset)}
+                  sx={{
+                    cursor: 'pointer', borderRadius: 2, border: '1px solid #eee', minWidth: 140,
+                    transition: 'all 0.15s', '&:hover': { borderColor: preset.color, boxShadow: `0 0 0 2px ${preset.color}22` }
+                  }}>
+                  <CardContent sx={{ py: 1.5, px: 2, '&:last-child': { pb: 1.5 } }}>
+                    <Box sx={{ color: preset.color, mb: 0.5 }}>{preset.icon}</Box>
+                    <Typography fontSize={13} fontWeight="bold">{preset.label}</Typography>
+                  </CardContent>
+                </Card>
+              ))}
+            </Box>
+
+            {/* Send Form */}
+            <Card sx={{ borderRadius: 3, mb: 4 }}>
+              <CardContent>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2.5 }}>
+                  <SendIcon sx={{ color: '#2DBE60' }} />
+                  <Typography variant="h6" fontWeight="bold">Send Notification</Typography>
+                </Box>
+                <TextField
+                  fullWidth label="Title" value={notifForm.title}
+                  onChange={e => setNotifForm({ ...notifForm, title: e.target.value })}
+                  placeholder="e.g. Bus Delay on Route A" sx={{ mb: 2 }} />
+                <TextField
+                  fullWidth multiline rows={3} label="Message" value={notifForm.message}
+                  onChange={e => setNotifForm({ ...notifForm, message: e.target.value })}
+                  placeholder="Describe the situation for students..." sx={{ mb: 2 }} />
+                <Box sx={{ display: 'flex', gap: 2, mb: 2.5 }}>
+                  <FormControl fullWidth>
+                    <InputLabel>Alert Type</InputLabel>
+                    <Select value={notifForm.type} label="Alert Type" onChange={e => setNotifForm({ ...notifForm, type: e.target.value })}>
+                      <MenuItem value="info"><Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}><InfoIcon fontSize="small" sx={{ color: '#2196f3' }} /> Info</Box></MenuItem>
+                      <MenuItem value="warning"><Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}><WarningAmberIcon fontSize="small" sx={{ color: '#ff9800' }} /> Warning</Box></MenuItem>
+                      <MenuItem value="urgent"><Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}><ErrorIcon fontSize="small" sx={{ color: '#f44336' }} /> Urgent</Box></MenuItem>
+                    </Select>
+                  </FormControl>
+                  <FormControl fullWidth>
+                    <InputLabel>Target</InputLabel>
+                    <Select value={notifForm.target_role} label="Target" onChange={e => setNotifForm({ ...notifForm, target_role: e.target.value })}>
+                      <MenuItem value="student">Students</MenuItem>
+                      <MenuItem value="all">Everyone</MenuItem>
+                    </Select>
+                  </FormControl>
+                </Box>
+                <Button
+                  fullWidth variant="contained"
+                  startIcon={<SendIcon />}
+                  onClick={handleSendNotification}
+                  disabled={!notifForm.title.trim() || !notifForm.message.trim() || sendingNotif}
+                  sx={{ py: 1.4, fontWeight: 'bold', background: '#2DBE60', '&:hover': { background: '#1F1F1F' } }}>
+                  {sendingNotif ? 'Sending...' : 'Send Notification'}
+                </Button>
+              </CardContent>
+            </Card>
+
+            {/* Sent Notifications List */}
+            <Typography variant="subtitle2" fontWeight="bold" color="text.secondary" sx={{ mb: 1.5, textTransform: 'uppercase', fontSize: 11, letterSpacing: 0.5 }}>
+              Sent Notifications ({notifications.length})
+            </Typography>
+            {notifications.length === 0 ? (
+              <Box sx={{ textAlign: 'center', py: 8, background: '#f9f9f9', borderRadius: 3, border: '1px dashed #ccc' }}>
+                <NotificationsIcon sx={{ fontSize: 48, color: '#ccc' }} />
+                <Typography fontWeight="bold" color="text.secondary" mt={1}>No notifications sent yet</Typography>
+                <Typography fontSize={13} color="text.secondary">Use the form above to send your first alert</Typography>
+              </Box>
+            ) : (
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                {notifications.map(n => {
+                  const tc = typeConfig[n.type] || typeConfig.info;
+                  return (
+                    <Card key={n.id} sx={{ borderRadius: 3, boxShadow: 'none', border: '1px solid #eee', borderLeft: `4px solid ${tc.color}` }}>
+                      <CardContent>
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                          <Box sx={{ flex: 1 }}>
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
+                              <Box sx={{ color: tc.color, display: 'flex' }}>{tc.icon}</Box>
+                              <Typography fontWeight="bold" fontSize={15}>{n.title}</Typography>
+                              <Chip label={tc.label} size="small" sx={{ background: tc.color, color: '#fff', fontWeight: 'bold', fontSize: 10, height: 20 }} />
+                              <Chip
+                                label={n.target_role === 'all' ? 'Everyone' : 'Students'}
+                                size="small"
+                                sx={{ background: '#f0f0f0', fontSize: 10, height: 20 }} />
+                            </Box>
+                            <Typography fontSize={14} color="#444" sx={{ mb: 0.5 }}>{n.message}</Typography>
+                            <Typography fontSize={12} color="text.secondary">
+                              {new Date(n.created_at).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                            </Typography>
+                          </Box>
+                          <Tooltip title="Delete notification">
+                            <IconButton size="small" onClick={() => handleDeleteNotification(n.id)} sx={{ color: '#f44336', ml: 1 }}>
+                              <DeleteIcon fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
+                        </Box>
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+              </Box>
+            )}
+          </Box>
+        )}
       </Box>
 
       {/* Add Bus Dialog */}
@@ -700,6 +984,39 @@ export default function OperatorAdminDashboard() {
           <Button variant="contained" onClick={handleAddTrip}
             disabled={!newTrip.route_id || !newTrip.bus_id || !newTrip.trip_date || !newTrip.departure_time}
             sx={{ background: '#1F1F1F', '&:hover': { background: '#2DBE60' } }}>Schedule Trip</Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Delay Alert Dialog (quick send from Live Trips) */}
+      <Dialog open={delayAlertDialog} onClose={() => setDelayAlertDialog(false)} maxWidth="sm" fullWidth>
+        <DialogTitle fontWeight="bold">
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <WarningAmberIcon sx={{ color: '#ff9800' }} />
+            Send Delay Alert — {delayAlertBus?.route_name}
+          </Box>
+        </DialogTitle>
+        <DialogContent>
+          <Alert severity="warning" sx={{ mb: 2, borderRadius: 2 }}>
+            This alert will be sent immediately to students on the <strong>{delayAlertBus?.route_name}</strong> route.
+          </Alert>
+          <TextField
+            fullWidth label="Title" value={notifForm.title}
+            onChange={e => setNotifForm({ ...notifForm, title: e.target.value })}
+            sx={{ mb: 2, mt: 1 }} />
+          <TextField
+            fullWidth multiline rows={3} label="Message" value={notifForm.message}
+            onChange={e => setNotifForm({ ...notifForm, message: e.target.value })} />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDelayAlertDialog(false)}>Cancel</Button>
+          <Button
+            variant="contained"
+            startIcon={<SendIcon />}
+            onClick={handleSendDelayAlert}
+            disabled={!notifForm.title.trim() || !notifForm.message.trim() || sendingNotif}
+            sx={{ background: '#ff9800', fontWeight: 'bold', '&:hover': { background: '#e65100' } }}>
+            {sendingNotif ? 'Sending...' : 'Send Alert'}
+          </Button>
         </DialogActions>
       </Dialog>
 

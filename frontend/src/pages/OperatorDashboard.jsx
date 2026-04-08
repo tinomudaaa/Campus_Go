@@ -4,7 +4,7 @@ import {
   Box, Typography, Card, CardContent, Button,
   Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
   Paper, Chip, Alert, Snackbar, MenuItem, Select, FormControl, InputLabel,
-  Dialog, DialogTitle, DialogContent, DialogActions, IconButton
+  Dialog, DialogTitle, DialogContent, DialogActions, IconButton, TextField
 } from '@mui/material';
 import QrCodeScannerIcon from '@mui/icons-material/QrCodeScanner';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
@@ -13,12 +13,40 @@ import StopCircleIcon from '@mui/icons-material/StopCircle';
 import PlayCircleIcon from '@mui/icons-material/PlayCircle';
 import CloseIcon from '@mui/icons-material/Close';
 import CameraAltIcon from '@mui/icons-material/CameraAlt';
-import TextField from '@mui/material/TextField';
 import CampusGoHeader from './CampusGoHeader';
 import DirectionsBusIcon from '@mui/icons-material/DirectionsBus';
+import WarningAmberIcon from '@mui/icons-material/WarningAmber';
+import SendIcon from '@mui/icons-material/Send';
+import NotificationsIcon from '@mui/icons-material/Notifications';
+import InfoIcon from '@mui/icons-material/Info';
+import ErrorIcon from '@mui/icons-material/Error';
 import { Html5Qrcode } from 'html5-qrcode';
 
 const API = 'https://campus-go-f21t.onrender.com';
+
+const ALERT_PRESETS = [
+  {
+    label: 'Bus Delay',
+    icon: <DirectionsBusIcon fontSize="small" />,
+    type: 'warning',
+    getMessage: (plate, route) =>
+      `Bus ${plate} on the ${route} route is currently delayed. We apologise for the inconvenience.`,
+  },
+  {
+    label: 'Route Change',
+    icon: <WarningAmberIcon fontSize="small" />,
+    type: 'info',
+    getMessage: (plate, route) =>
+      `The route for bus ${plate} has been temporarily changed. Please check for updates.`,
+  },
+  {
+    label: 'Trip Cancelled',
+    icon: <ErrorIcon fontSize="small" />,
+    type: 'urgent',
+    getMessage: (plate, route) =>
+      `The trip for bus ${plate} on the ${route} route has been cancelled. We apologise for the inconvenience.`,
+  },
+];
 
 export default function OperatorDashboard() {
   const [qrInput, setQrInput] = useState('');
@@ -34,9 +62,15 @@ export default function OperatorDashboard() {
   const [scanning, setScanning] = useState(false);
   const [cameraError, setCameraError] = useState('');
 
+  // Alert state
+  const [alertDialog, setAlertDialog] = useState(false);
+  const [alertForm, setAlertForm] = useState({ title: '', message: '', type: 'warning' });
+  const [sendingAlert, setSendingAlert] = useState(false);
+
   const watchIdRef = useRef(null);
   const plateRef = useRef('');
   const selectedRouteIdRef = useRef('');
+  const selectedRouteNameRef = useRef('');
   const scannerRef = useRef(null);
   const user = JSON.parse(localStorage.getItem('campusgo_user'));
 
@@ -66,39 +100,22 @@ export default function OperatorDashboard() {
     };
   }, []);
 
-  // Start camera directly (not image upload mode)
   useEffect(() => {
     if (!cameraOpen) return;
     setCameraError('');
-
     const timer = setTimeout(async () => {
       try {
         const html5QrCode = new Html5Qrcode('qr-reader-direct');
         scannerRef.current = html5QrCode;
-
-        // Get back camera specifically
         const cameras = await Html5Qrcode.getCameras();
-        if (!cameras || cameras.length === 0) {
-          setCameraError('No camera found on this device.');
-          return;
-        }
-
-        // Prefer back/environment camera
+        if (!cameras || cameras.length === 0) { setCameraError('No camera found on this device.'); return; }
         const backCamera = cameras.find(c =>
-          c.label.toLowerCase().includes('back') ||
-          c.label.toLowerCase().includes('rear') ||
-          c.label.toLowerCase().includes('environment')
+          c.label.toLowerCase().includes('back') || c.label.toLowerCase().includes('rear') || c.label.toLowerCase().includes('environment')
         ) || cameras[cameras.length - 1];
-
         await html5QrCode.start(
           backCamera.id,
-          {
-            fps: 15,
-            qrbox: { width: 250, height: 250 },
-            aspectRatio: 1.0,
-          },
+          { fps: 15, qrbox: { width: 250, height: 250 }, aspectRatio: 1.0 },
           async (decodedText) => {
-            // Stop scanning immediately on success
             await html5QrCode.stop().catch(() => {});
             scannerRef.current = null;
             setCameraOpen(false);
@@ -106,14 +123,13 @@ export default function OperatorDashboard() {
             await validateTicket(decodedText);
             setScanning(false);
           },
-          () => {} // ignore per-frame errors
+          () => {}
         );
       } catch (err) {
         console.error('Camera error:', err);
         setCameraError('Could not access camera. Please allow camera permission and try again.');
       }
     }, 400);
-
     return () => clearTimeout(timer);
   }, [cameraOpen]);
 
@@ -131,12 +147,12 @@ export default function OperatorDashboard() {
     try {
       const res = await axios.post(`${API}/api/tickets/scan`, { qr_code: code.trim() });
       setScannedTickets(prev => [res.data, ...prev]);
-      setSnackbar({ open: true, message: '✅ Ticket validated successfully!', severity: 'success' });
+      setSnackbar({ open: true, message: 'Ticket validated successfully!', severity: 'success' });
       setQrInput('');
     } catch (err) {
       setSnackbar({
         open: true,
-        message: err.response?.data?.error || '❌ Invalid or already used ticket',
+        message: err.response?.data?.error || 'Invalid or already used ticket',
         severity: 'error'
       });
       setQrInput('');
@@ -153,8 +169,10 @@ export default function OperatorDashboard() {
   const startTrip = () => {
     if (!selectedRouteId) return setSnackbar({ open: true, message: 'Please select a route first.', severity: 'error' });
     if (!selectedPlate) return setSnackbar({ open: true, message: 'Please select a bus plate.', severity: 'error' });
+    const routeName = routes.find(r => String(r.id) === String(selectedRouteId))?.name || '';
     plateRef.current = selectedPlate;
     selectedRouteIdRef.current = selectedRouteId;
+    selectedRouteNameRef.current = routeName;
     navigator.geolocation.getCurrentPosition(
       (initialPos) => {
         setTripActive(true);
@@ -184,6 +202,35 @@ export default function OperatorDashboard() {
       const activeRes = await axios.get(`${API}/api/locations/active`);
       setActivePlates(activeRes.data.map(b => b.number_plate).filter(Boolean));
     } catch (err) { console.error(err); }
+  };
+
+  const openAlertDialog = (preset) => {
+    setAlertForm({
+      title: preset.label + (plateRef.current ? ` — ${plateRef.current}` : ''),
+      message: preset.getMessage(plateRef.current || 'your bus', selectedRouteNameRef.current || 'your route'),
+      type: preset.type,
+    });
+    setAlertDialog(true);
+  };
+
+  const handleSendAlert = async () => {
+    if (!alertForm.title.trim() || !alertForm.message.trim()) return;
+    setSendingAlert(true);
+    try {
+      await axios.post(`${API}/api/notifications`, {
+        title: alertForm.title,
+        message: alertForm.message,
+        type: alertForm.type,
+        target_role: 'student',
+        company_id: user?.company_id,
+      }, {
+        headers: { 'x-user-id': user?.id, 'x-company-id': user?.company_id, 'x-user-role': 'operator' }
+      });
+      setSnackbar({ open: true, message: 'Alert sent to students!', severity: 'success' });
+      setAlertDialog(false);
+    } catch (err) {
+      setSnackbar({ open: true, message: err.response?.data?.error || 'Failed to send alert.', severity: 'error' });
+    } finally { setSendingAlert(false); }
   };
 
   return (
@@ -258,7 +305,7 @@ export default function OperatorDashboard() {
                   label={`Active — ${plateRef.current}`}
                   sx={{ background: '#2DBE60', color: '#fff', fontWeight: 'bold', mb: 2, fontSize: 14 }}
                 />
-                <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
                   Bus {plateRef.current} is live — updating every 5 seconds.
                 </Typography>
                 <Button fullWidth variant="contained" onClick={stopTrip}
@@ -270,6 +317,42 @@ export default function OperatorDashboard() {
             )}
           </CardContent>
         </Card>
+
+        {/* Send Alert (only visible during active trip) */}
+        {tripActive && (
+          <Card sx={{ borderRadius: 3, mb: 4, border: '1px solid #ff980033', borderLeft: '4px solid #ff9800' }}>
+            <CardContent>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+                <NotificationsIcon sx={{ color: '#ff9800' }} />
+                <Typography variant="h6" fontWeight="bold">Send Alert to Students</Typography>
+              </Box>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                Notify students about delays or changes on your current trip.
+              </Typography>
+              <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
+                {ALERT_PRESETS.map((preset, i) => (
+                  <Button
+                    key={i}
+                    variant="outlined"
+                    startIcon={preset.icon}
+                    onClick={() => openAlertDialog(preset)}
+                    sx={{
+                      borderColor: preset.type === 'urgent' ? '#f44336' : preset.type === 'warning' ? '#ff9800' : '#2196f3',
+                      color: preset.type === 'urgent' ? '#f44336' : preset.type === 'warning' ? '#ff9800' : '#2196f3',
+                      fontWeight: 'bold',
+                      '&:hover': {
+                        background: preset.type === 'urgent' ? '#f44336' : preset.type === 'warning' ? '#ff9800' : '#2196f3',
+                        borderColor: 'transparent',
+                        color: '#fff',
+                      }
+                    }}>
+                    {preset.label}
+                  </Button>
+                ))}
+              </Box>
+            </CardContent>
+          </Card>
+        )}
 
         {/* QR Scanner */}
         <Card sx={{ borderRadius: 3, mb: 4 }}>
@@ -355,7 +438,7 @@ export default function OperatorDashboard() {
         </Card>
       </Box>
 
-      {/* Camera Dialog — direct camera mode, no image upload */}
+      {/* Camera Dialog */}
       <Dialog open={cameraOpen} onClose={closeCamera} maxWidth="sm" fullWidth
         PaperProps={{ sx: { borderRadius: 3 } }}>
         <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', pb: 1 }}>
@@ -376,11 +459,7 @@ export default function OperatorDashboard() {
           <Box
             id="qr-reader-direct"
             sx={{
-              width: '100%',
-              minHeight: 300,
-              background: '#000',
-              borderRadius: 2,
-              overflow: 'hidden',
+              width: '100%', minHeight: 300, background: '#000', borderRadius: 2, overflow: 'hidden',
               '& video': { width: '100% !important', borderRadius: 2 },
               '& canvas': { display: 'none' },
             }}
@@ -389,6 +468,49 @@ export default function OperatorDashboard() {
         <DialogActions sx={{ px: 3, pb: 2 }}>
           <Button onClick={closeCamera} variant="outlined" fullWidth sx={{ borderColor: '#ccc', color: '#555' }}>
             Cancel
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Send Alert Dialog */}
+      <Dialog open={alertDialog} onClose={() => setAlertDialog(false)} maxWidth="sm" fullWidth
+        PaperProps={{ sx: { borderRadius: 3 } }}>
+        <DialogTitle fontWeight="bold">
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <WarningAmberIcon sx={{ color: '#ff9800' }} />
+            Send Alert to Students
+          </Box>
+        </DialogTitle>
+        <DialogContent>
+          <Alert severity="warning" sx={{ mb: 2, borderRadius: 2 }}>
+            This alert will be sent immediately to all students.
+          </Alert>
+          <TextField
+            fullWidth label="Title" value={alertForm.title}
+            onChange={e => setAlertForm({ ...alertForm, title: e.target.value })}
+            sx={{ mb: 2, mt: 1 }} />
+          <TextField
+            fullWidth multiline rows={3} label="Message" value={alertForm.message}
+            onChange={e => setAlertForm({ ...alertForm, message: e.target.value })}
+            sx={{ mb: 2 }} />
+          <FormControl fullWidth>
+            <InputLabel>Alert Type</InputLabel>
+            <Select value={alertForm.type} label="Alert Type" onChange={e => setAlertForm({ ...alertForm, type: e.target.value })}>
+              <MenuItem value="info"><Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}><InfoIcon fontSize="small" sx={{ color: '#2196f3' }} /> Info</Box></MenuItem>
+              <MenuItem value="warning"><Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}><WarningAmberIcon fontSize="small" sx={{ color: '#ff9800' }} /> Warning</Box></MenuItem>
+              <MenuItem value="urgent"><Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}><ErrorIcon fontSize="small" sx={{ color: '#f44336' }} /> Urgent</Box></MenuItem>
+            </Select>
+          </FormControl>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setAlertDialog(false)}>Cancel</Button>
+          <Button
+            variant="contained"
+            startIcon={<SendIcon />}
+            onClick={handleSendAlert}
+            disabled={!alertForm.title.trim() || !alertForm.message.trim() || sendingAlert}
+            sx={{ background: '#ff9800', fontWeight: 'bold', '&:hover': { background: '#e65100' } }}>
+            {sendingAlert ? 'Sending...' : 'Send Alert'}
           </Button>
         </DialogActions>
       </Dialog>
