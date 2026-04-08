@@ -2,22 +2,42 @@ const express = require('express');
 const router = express.Router();
 const pool = require('../db');
 
-// Get notifications for a user (unread count + list)
+// Get notifications
+// - Students: returns notifications targeted at them (to display in bell)
+// - Operators / operator_admin: returns notifications SENT by their company (to display in sent list)
 router.get('/', async (req, res) => {
   try {
     const userId = req.headers['x-user-id'];
     const userRole = req.headers['x-user-role'];
     const companyId = req.headers['x-company-id'];
 
-    const result = await pool.query(`
-      SELECT n.*, 
-        CASE WHEN nr.id IS NOT NULL THEN true ELSE false END as is_read
-      FROM notifications n
-      LEFT JOIN notification_reads nr ON nr.notification_id = n.id AND nr.user_id = $1
-      WHERE n.target_role = $2 OR n.target_role = 'all'
-      ORDER BY n.created_at DESC
-      LIMIT 50
-    `, [userId, userRole]);
+    const isStudent = userRole === 'student';
+
+    let result;
+
+    if (isStudent) {
+      // Students see notifications targeted at them
+      result = await pool.query(`
+        SELECT n.*, 
+          CASE WHEN nr.id IS NOT NULL THEN true ELSE false END as is_read
+        FROM notifications n
+        LEFT JOIN notification_reads nr ON nr.notification_id = n.id AND nr.user_id = $1
+        WHERE n.target_role = 'student' OR n.target_role = 'all'
+        ORDER BY n.created_at DESC
+        LIMIT 50
+      `, [userId]);
+    } else {
+      // Operators / operator_admin see notifications their company has sent
+      result = await pool.query(`
+        SELECT n.*,
+          false as is_read
+        FROM notifications n
+        WHERE n.created_by = $1
+           OR ($2::integer IS NOT NULL AND n.company_id = $2::integer)
+        ORDER BY n.created_at DESC
+        LIMIT 50
+      `, [userId, companyId || null]);
+    }
 
     res.json(result.rows);
   } catch (err) {
@@ -25,7 +45,7 @@ router.get('/', async (req, res) => {
   }
 });
 
-// Mark notification as read
+// Mark notification as read (students only)
 router.post('/:id/read', async (req, res) => {
   try {
     const userId = req.headers['x-user-id'];
@@ -54,7 +74,7 @@ router.post('/', async (req, res) => {
   }
 });
 
-// Delete a notification (admin only)
+// Delete a notification
 router.delete('/:id', async (req, res) => {
   try {
     await pool.query('DELETE FROM notifications WHERE id = $1', [req.params.id]);
