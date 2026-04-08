@@ -6,7 +6,7 @@ import {
   Dialog, DialogTitle, DialogContent, DialogActions,
   Chip, Alert, Snackbar, Tabs, Tab, Tooltip,
   MenuItem, Select, FormControl, InputLabel, List, ListItem,
-  ListItemText, ListItemSecondaryAction, IconButton, Divider
+  ListItemText, IconButton, Divider
 } from '@mui/material';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip,
@@ -28,13 +28,16 @@ import BlockIcon from '@mui/icons-material/Block';
 import HourglassEmptyIcon from '@mui/icons-material/HourglassEmpty';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import AttachMoneyIcon from '@mui/icons-material/AttachMoney';
-import ConfirmationNumberIcon from '@mui/icons-material/ConfirmationNumber';
 import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 import FiberManualRecordIcon from '@mui/icons-material/FiberManualRecord';
 import DirectionsBusIcon from '@mui/icons-material/DirectionsBus';
 import NotificationsIcon from '@mui/icons-material/Notifications';
 import DeleteIcon from '@mui/icons-material/Delete';
 import CampaignIcon from '@mui/icons-material/Campaign';
+import InfoIcon from '@mui/icons-material/Info';
+import ErrorIcon from '@mui/icons-material/Error';
+import CancelIcon from '@mui/icons-material/Cancel';
+import EditRoadIcon from '@mui/icons-material/EditRoad';
 import CampusGoHeader from './CampusGoHeader';
 
 delete L.Icon.Default.prototype._getIconUrl;
@@ -79,10 +82,42 @@ const statusColors = {
 };
 
 const notifTypeConfig = {
-  info:    { emoji: 'ℹ️', label: 'Info',    bg: '#e3f2fd', border: '#1976d2', chip: '#1976d2' },
-  warning: { emoji: '⚠️', label: 'Warning', bg: '#fff8e1', border: '#ff9800', chip: '#ff9800' },
-  error:   { emoji: '🚨', label: 'Urgent',  bg: '#fdecea', border: '#f44336', chip: '#f44336' },
+  info:    { icon: <InfoIcon sx={{ fontSize: 16, color: '#1976d2' }} />,    label: 'Info',    bg: '#e3f2fd', border: '#1976d2', chip: '#1976d2' },
+  warning: { icon: <WarningAmberIcon sx={{ fontSize: 16, color: '#ff9800' }} />, label: 'Warning', bg: '#fff8e1', border: '#ff9800', chip: '#ff9800' },
+  error:   { icon: <ErrorIcon sx={{ fontSize: 16, color: '#f44336' }} />,   label: 'Urgent',  bg: '#fdecea', border: '#f44336', chip: '#f44336' },
 };
+
+// Preset cards config — icons instead of emojis
+const notifPresets = [
+  {
+    label: 'Bus Delay',
+    icon: <DirectionsBusIcon sx={{ fontSize: 20, color: '#ff9800' }} />,
+    title: 'Bus Delay Notice',
+    message: 'Some buses are currently delayed. Please allow extra travel time.',
+    type: 'warning',
+  },
+  {
+    label: 'Route Change',
+    icon: <EditRoadIcon sx={{ fontSize: 20, color: '#ff9800' }} />,
+    title: 'Temporary Route Change',
+    message: 'A route has been temporarily modified due to road works. Check the app for details.',
+    type: 'warning',
+  },
+  {
+    label: 'Service Cancelled',
+    icon: <CancelIcon sx={{ fontSize: 20, color: '#f44336' }} />,
+    title: 'Service Cancellation',
+    message: 'Bus service has been cancelled for today. We apologise for the inconvenience.',
+    type: 'error',
+  },
+  {
+    label: 'General Info',
+    icon: <InfoIcon sx={{ fontSize: 20, color: '#1976d2' }} />,
+    title: 'Campus GO Update',
+    message: '',
+    type: 'info',
+  },
+];
 
 export default function AdminDashboard() {
   const [tab, setTab] = useState(0);
@@ -110,7 +145,7 @@ export default function AdminDashboard() {
   const [notifDialogOpen, setNotifDialogOpen] = useState(false);
   const [notifLoading, setNotifLoading] = useState(false);
   const [newNotif, setNewNotif] = useState({ title: '', message: '', type: 'warning', target_role: 'student' });
-  const [quickAlertBus, setQuickAlertBus] = useState(null); // for quick delay alert from Fleet Monitor
+  const [quickAlertBus, setQuickAlertBus] = useState(null);
 
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
   const [lastFleetUpdate, setLastFleetUpdate] = useState(null);
@@ -216,7 +251,7 @@ export default function AdminDashboard() {
       if (res.data.inviteToken) {
         const link = `${window.location.origin}/invite/${res.data.inviteToken}`;
         await navigator.clipboard.writeText(link).catch(() => {});
-        setSnackbar({ open: true, message: `Invite link copied to clipboard!`, severity: 'success' });
+        setSnackbar({ open: true, message: 'Invite link copied to clipboard!', severity: 'success' });
       }
     } catch (err) {
       setSnackbar({ open: true, message: err.response?.data?.error || 'Failed to create company.', severity: 'error' });
@@ -243,7 +278,6 @@ export default function AdminDashboard() {
     setTimeout(() => setInviteCopied(null), 2000);
   };
 
-  // Send a notification
   const handleSendNotification = async () => {
     if (!newNotif.title || !newNotif.message) return;
     setNotifLoading(true);
@@ -254,7 +288,7 @@ export default function AdminDashboard() {
         type: newNotif.type,
         target_role: newNotif.target_role,
       }, { headers: { 'x-user-id': user?.id } });
-      setSnackbar({ open: true, message: '✅ Notification sent to students!', severity: 'success' });
+      setSnackbar({ open: true, message: 'Notification sent to students!', severity: 'success' });
       setNotifDialogOpen(false);
       setQuickAlertBus(null);
       setNewNotif({ title: '', message: '', type: 'warning', target_role: 'student' });
@@ -265,7 +299,6 @@ export default function AdminDashboard() {
     setNotifLoading(false);
   };
 
-  // Delete a notification
   const handleDeleteNotification = async (id) => {
     try {
       await axios.delete(`https://campus-go-f21t.onrender.com/api/notifications/${id}`, {
@@ -278,11 +311,10 @@ export default function AdminDashboard() {
     }
   };
 
-  // Open quick delay alert pre-filled with bus info
   const handleQuickDelayAlert = (bus) => {
     setQuickAlertBus(bus);
     setNewNotif({
-      title: `⚠️ Bus Delay — ${bus.route_name}`,
+      title: `Bus Delay — ${bus.route_name}`,
       message: `The bus on route ${bus.route_name} (${bus.number_plate || 'no plate'}) is currently experiencing a delay. Please check the app for updates.`,
       type: 'warning',
       target_role: 'student',
@@ -655,7 +687,6 @@ export default function AdminDashboard() {
                       label={activeBuses.length > 0 ? `${activeBuses.length} bus${activeBuses.length !== 1 ? 'es' : ''} on road` : 'No active buses'}
                       sx={{ background: activeBuses.length > 0 ? '#2DBE60' : '#ccc', color: '#fff', fontWeight: 'bold' }}
                     />
-                    {/* Quick send alert button */}
                     <Button
                       variant="contained"
                       startIcon={<CampaignIcon />}
@@ -727,7 +758,6 @@ export default function AdminDashboard() {
                                 <Typography fontSize={11} color="text.secondary" display="block">
                                   {new Date(bus.updated_at).toLocaleTimeString()}
                                 </Typography>
-                                {/* Per-bus quick delay alert */}
                                 <Button
                                   size="small"
                                   variant="outlined"
@@ -754,7 +784,7 @@ export default function AdminDashboard() {
               </Box>
             )}
 
-            {/* ── Notifications Tab ── */}
+            {/* Notifications Tab */}
             {tab === 6 && (
               <Box>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
@@ -780,12 +810,7 @@ export default function AdminDashboard() {
 
                 {/* Quick-send preset cards */}
                 <Box sx={{ display: 'flex', gap: 2, mb: 4, flexWrap: 'wrap' }}>
-                  {[
-                    { label: '🚌 Bus Delay', title: '⚠️ Bus Delay Notice', message: 'Some buses are currently delayed. Please allow extra travel time.', type: 'warning' },
-                    { label: '🚧 Route Change', title: '🚧 Temporary Route Change', message: 'A route has been temporarily modified due to road works. Check the app for details.', type: 'warning' },
-                    { label: '🚨 Service Cancelled', title: '🚨 Service Cancellation', message: 'Bus service has been cancelled for today. We apologise for the inconvenience.', type: 'error' },
-                    { label: 'ℹ️ General Info', title: 'Campus GO Update', message: '', type: 'info' },
-                  ].map((preset, i) => (
+                  {notifPresets.map((preset, i) => (
                     <Card
                       key={i}
                       onClick={() => {
@@ -793,14 +818,20 @@ export default function AdminDashboard() {
                         setNotifDialogOpen(true);
                       }}
                       sx={{
-                        cursor: 'pointer', borderRadius: 2, border: `2px solid ${notifTypeConfig[preset.type].border}`,
-                        background: notifTypeConfig[preset.type].bg, flex: '1 1 180px',
-                        transition: 'transform 0.15s', '&:hover': { transform: 'scale(1.03)' }
+                        cursor: 'pointer', borderRadius: 2,
+                        border: `2px solid ${notifTypeConfig[preset.type].border}`,
+                        background: notifTypeConfig[preset.type].bg,
+                        flex: '1 1 180px',
+                        transition: 'transform 0.15s',
+                        '&:hover': { transform: 'scale(1.03)' }
                       }}
                     >
                       <CardContent sx={{ py: 1.5, '&:last-child': { pb: 1.5 } }}>
-                        <Typography fontWeight="bold" fontSize={14}>{preset.label}</Typography>
-                        <Typography fontSize={12} color="text.secondary" mt={0.5}>Click to pre-fill & send</Typography>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
+                          {preset.icon}
+                          <Typography fontWeight="bold" fontSize={14}>{preset.label}</Typography>
+                        </Box>
+                        <Typography fontSize={12} color="text.secondary">Click to pre-fill &amp; send</Typography>
                       </CardContent>
                     </Card>
                   ))}
@@ -825,11 +856,7 @@ export default function AdminDashboard() {
                         return (
                           <Box key={n.id}>
                             <ListItem
-                              sx={{
-                                borderLeft: `4px solid ${cfg.border}`,
-                                background: cfg.bg,
-                                py: 1.5,
-                              }}
+                              sx={{ borderLeft: `4px solid ${cfg.border}`, background: cfg.bg, py: 1.5 }}
                               secondaryAction={
                                 <Tooltip title="Delete notification">
                                   <IconButton edge="end" size="small" onClick={() => handleDeleteNotification(n.id)}
@@ -842,6 +869,7 @@ export default function AdminDashboard() {
                               <ListItemText
                                 primary={
                                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
+                                    {cfg.icon}
                                     <Typography fontWeight="bold" fontSize={14}>{n.title}</Typography>
                                     <Chip
                                       label={cfg.label}
@@ -879,7 +907,7 @@ export default function AdminDashboard() {
         </Card>
       </Box>
 
-      {/* ── Send Notification Dialog ── */}
+      {/* Send Notification Dialog */}
       <Dialog open={notifDialogOpen} onClose={() => { setNotifDialogOpen(false); setQuickAlertBus(null); }} maxWidth="sm" fullWidth>
         <DialogTitle fontWeight="bold">
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -897,7 +925,7 @@ export default function AdminDashboard() {
             fullWidth label="Title" value={newNotif.title}
             onChange={e => setNewNotif({ ...newNotif, title: e.target.value })}
             sx={{ mb: 2, mt: 1 }} autoFocus
-            placeholder="e.g. ⚠️ Bus Delay on Route 5"
+            placeholder="e.g. Bus Delay on Route 5"
           />
           <TextField
             fullWidth label="Message" value={newNotif.message}
@@ -909,9 +937,21 @@ export default function AdminDashboard() {
             <FormControl fullWidth sx={{ mb: 1 }}>
               <InputLabel>Type</InputLabel>
               <Select value={newNotif.type} label="Type" onChange={e => setNewNotif({ ...newNotif, type: e.target.value })}>
-                <MenuItem value="info">ℹ️ Info</MenuItem>
-                <MenuItem value="warning">⚠️ Warning</MenuItem>
-                <MenuItem value="error">🚨 Urgent</MenuItem>
+                <MenuItem value="info">
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <InfoIcon sx={{ fontSize: 18, color: '#1976d2' }} /> Info
+                  </Box>
+                </MenuItem>
+                <MenuItem value="warning">
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <WarningAmberIcon sx={{ fontSize: 18, color: '#ff9800' }} /> Warning
+                  </Box>
+                </MenuItem>
+                <MenuItem value="error">
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <ErrorIcon sx={{ fontSize: 18, color: '#f44336' }} /> Urgent
+                  </Box>
+                </MenuItem>
               </Select>
             </FormControl>
             <FormControl fullWidth sx={{ mb: 1 }}>
